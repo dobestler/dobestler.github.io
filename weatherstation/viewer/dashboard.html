@@ -69,8 +69,7 @@
                 " WHERE A >= datetime '" + start + "' AND A <= datetime '" + end + "'" +
                 " ORDER BY A DESC" +
                 " OFFSET 1" +
-                " LABEL A 'Date', B 'Bedroom', C 'Living room', D 'Eira’s room', E 'Outside'"
-                ;
+                " LABEL A 'Date', B 'Bedroom', C 'Living room', D 'Eira’s room', E 'Outside'";
 
             var spreadSheetId = "";
             switch (dataType) {
@@ -106,6 +105,7 @@
 
         }
 
+        //FIXME still needed? chart seems to be able to display larger ranges but is very slow?
         function showChart(datatype, start, end) {
             var url = "https://fusiontables.googleusercontent.com/embedviz?containerId=googft-gviz-canvas&viz=GVIZ&t=LINE_AGGREGATE&isXyPlot=true&bsize=0.0&" +
                 "q={ $QCOLS }&qrs=+where+col3+%3E%3D+&qre=+and+col3+%3C%3D+&qe=+order+by+col3+asc&uiversion=2&" +
@@ -186,7 +186,7 @@
         function queryMostRecentFor(spreadsheetId, dataType, responseHandler) {
             gapi.client.sheets.spreadsheets.values.batchGet({
                 spreadsheetId: spreadsheetId,
-                ranges: ['Data!A2:E2', 'Average!G11:G11'],
+                ranges: ['Data!A2:E2', 'Average!I2:I2'],
             }).then(
                 function(response) {
                     if (response.result.valueRanges.length > 0) {
@@ -249,6 +249,8 @@
                 }
             });
         }
+
+
 
 
 
@@ -461,6 +463,8 @@
           alert('Sign in failed!');
         }
       }
+
+
 
 
 
