@@ -39,6 +39,10 @@
     <link rel="stylesheet" type="text/css" href="./style/weatherstation.css"/>
 
     <script type="text/javascript">
+        var spreadsheetIdTemperature = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
+        var spreadsheetIdHumidity = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
+        var spreadsheetIdBattery = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
+
         var start = moment().subtract(1, 'days');
         var end = moment();
 
@@ -51,6 +55,7 @@
             $('#btn-chart').on('click', function() {
                 var datatype = document.getElementById('datatype').value;
                 showChart(datatype, start.format('YYYY/MM/DD+HH:mm:ss'), end.format('YYYY/MM/DD+HH:mm:ss'));
+                // FIXME
             })
         });
 
@@ -58,27 +63,47 @@
             packages: ['line', 'corechart']
         });
 
-        function draw(datatype, start, end) {
-            var query = "SELECT Date, DeviceNo8 as 'Bedroom', DeviceNo9 as 'Living room', DeviceNo10 as 'Eira’s room', Outside";
-            switch (datatype) {
+        function drawChart(dataType, start, end) {
+            var query =
+                "SELECT A, B, C, D, E" +
+                " WHERE A >= datetime '" + start + "' AND A <= datetime '" + end + "'" +
+                " ORDER BY A DESC" +
+                " OFFSET 1" +
+                " LABEL A 'Date', B 'Bedroom', C 'Living room', D 'Eira’s room', E 'Outside'"
+                ;
+
+            var spreadSheetId = "";
+            switch (dataType) {
                 case 'Humidity':
-                    query += " FROM 1sJHjpA2ToIvRbY0eksYhS1hfctq8yg-1H1KPhvaJ";
+                    spreadSheetId = spreadsheetIdHumidity;
                     break;
                 case 'Pressure':
                 case 'Temperature':
-                    query += " FROM 1jQ_Jnnw26pWU05sGBNdXbXlvxB-66_W4fuJgsTG7";
+                    spreadSheetId = spreadsheetIdTemperature;
                     break;
                 case 'Battery':
-                    query += " FROM 13Oox5ACRRPJcaL8CigkkpveWUNV3ALDbEwWpmuvq";
+                    spreadSheetId = spreadsheetIdBattery;
                     break;
             }
-            query += " WHERE Date >= '" + start + "' AND Date <= '" + end + "'";
-            query += " ORDER BY Date DESC";
 
-            //alert(query);
+            var options = {
+                chart: {
+                  title: document.getElementById('datatype').value + ' data',
+                  subtitle: 'in ' + getUnitFor(document.getElementById('datatype').value)
+                },
+                legend: { position: 'bottom' },
+                width: document.getElementById('visualization_chart_div').style.width,
+                height: $(document).height()/2,
+            };
 
-            var queryText = encodeURIComponent(query);
-            drawChart(query);
+            google.visualization.drawChart({
+                "containerId": "visualization_chart_div",
+                "dataSourceUrl": "https://docs.google.com/spreadsheets/d/" + spreadSheetId + "/gviz/tq?sheet=Data&headers=1&tq=",
+                "query":query,
+                "chartType": "Line",
+                "options": google.charts.Line.convertOptions(options)
+            });
+
         }
 
         function showChart(datatype, start, end) {
@@ -119,28 +144,6 @@
             }
         }
 
-        function drawChart(query) {
-            var options = {
-                chart: {
-                  title: document.getElementById('datatype').value + ' data',
-                  subtitle: 'in ' + getUnitFor(document.getElementById('datatype').value)
-                },
-                legend: { position: 'bottom' },
-                width: document.getElementById('visualization_chart_div').style.width,
-                height: $(document).height()/2,
-            };
-
-            google.visualization.drawChart({
-                "containerId": "visualization_chart_div",
-                "dataSourceUrl": "https://www.google.com/fusiontables/gvizdata?tq=",
-                "query":query,
-                "chartType": "Line",
-                "options": google.charts.Line.convertOptions(options)
-            });
-
-        }
-
-        //google.setOnLoadCallback(draw);
 
         function updateDateRangePicker() {
 
@@ -151,7 +154,7 @@
             function cb(start, end) {
                 $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
                 var datatype = document.getElementById('datatype').value;
-                draw(datatype, start.format('YYYY-MM-DD HH:mm'), end.format('YYYY-MM-DD HH:mm'));
+                drawChart(datatype, start.format('YYYY-MM-DD HH:mm:ss'), end.format('YYYY-MM-DD HH:mm:ss'));
             }
 
             $('#reportrange').daterangepicker({
@@ -175,9 +178,9 @@
         };
 
         function queryMostRecent() {
-            queryMostRecentFor('1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0', 'Temperature', responseHandlerTemperature);
-            queryMostRecentFor('1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0', 'Humidity', responseHandlerHumidity);
-            queryMostRecentFor('1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0', 'Battery', responseHandlerBattery);
+            queryMostRecentFor(spreadsheetIdTemperature, 'Temperature', responseHandlerTemperature);
+            queryMostRecentFor(spreadsheetIdHumidity, 'Humidity', responseHandlerHumidity);
+            queryMostRecentFor(spreadsheetIdBattery, 'Battery', responseHandlerBattery);
         }
 
         function queryMostRecentFor(spreadsheetId, dataType, responseHandler) {
@@ -198,8 +201,6 @@
             );
 
         }
-
-
 
         function responseHandlerTemperature(response, dataType) {
             unit = getUnitFor(dataType)
@@ -248,6 +249,26 @@
                 }
             });
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -381,8 +402,6 @@
 <div>
     <!--Add buttons to initiate auth sequence and sign out-->
     <button id="authorize-button" style="visibility: hidden;">Authorize</button>
-
-    <pre id="content" style="white-space: pre-wrap;"></pre>
 </div>
 
 <script type="text/javascript">
@@ -442,71 +461,6 @@
           alert('Sign in failed!');
         }
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
