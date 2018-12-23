@@ -40,8 +40,8 @@
 
     <script type="text/javascript">
         var spreadsheetIdTemperature = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
-        var spreadsheetIdHumidity = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
-        var spreadsheetIdBattery = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
+        var spreadsheetIdHumidity = '1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4';
+        var spreadsheetIdBattery = '1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk';
 
         var start = moment().subtract(1, 'days');
         var end = moment();
@@ -186,11 +186,11 @@
         function queryMostRecentFor(spreadsheetId, dataType, responseHandler) {
             gapi.client.sheets.spreadsheets.values.batchGet({
                 spreadsheetId: spreadsheetId,
-                ranges: ['Data!A2:E2', 'Average!I2:I2'],
+                ranges: ['Data!A2:E2', 'Average!F2:F2'],
             }).then(
                 function(response) {
                     if (response.result.valueRanges.length > 0) {
-                        responseHandler(response, dataType);
+                        responseHandler(response.result.valueRanges, dataType);
                     } else {
                         alert('No ' + dataType + ' data found');
                     }
@@ -202,32 +202,32 @@
 
         }
 
-        function responseHandlerTemperature(response, dataType) {
+        function responseHandlerTemperature(data, dataType) {
             unit = getUnitFor(dataType)
-            $('#current_date').html(moment(response.result.valueRanges[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
-            $('#bedroom_currentTemperature').html(response.result.valueRanges[0].values[0][1] + unit);
-            $('#livingroom_currentTemperature').html(response.result.valueRanges[0].values[0][2] + unit);
-            $('#eirasroom_currentTemperature').html(response.result.valueRanges[0].values[0][3] + unit);
-            $('#outside_currentTemperature').html(response.result.valueRanges[0].values[0][4] + unit);
-            $('#inside_avgTemperature').html(response.result.valueRanges[1].values[0] + unit);
+            $('#current_date').html(moment(data[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
+            $('#bedroom_currentTemperature').html(data[0].values[0][1] + unit);
+            $('#livingroom_currentTemperature').html(data[0].values[0][2] + unit);
+            $('#eirasroom_currentTemperature').html(data[0].values[0][3] + unit);
+            $('#outside_currentTemperature').html(data[0].values[0][4] + unit);
+            $('#inside_avgTemperature').html(data[1].values[0] + unit);
         }
 
-        function responseHandlerHumidity(response) {
-            unit = getUnitFor('Humidity')
-            // $('#current_date').html(moment(response.result.valueRanges[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
-            $('#bedroom_currentHumidity').html(response.result.valueRanges[0].values[0][1] + unit);
-            $('#livingroom_currentHumidity').html(response.result.valueRanges[0].values[0][2] + unit);
-            $('#eirasroom_currentHumidity').html(response.result.valueRanges[0].values[0][3] + unit);
-            $('#outside_currentHumidity').html(response.result.valueRanges[0].values[0][4] + unit);
-            $('#inside_avgHumidity').html(response.result.valueRanges[1].values[0] + unit);
+        function responseHandlerHumidity(data, dataType) {
+            unit = getUnitFor(dataType)
+            // $('#current_date').html(moment(data[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
+            $('#bedroom_currentHumidity').html(data[0].values[0][1] + unit);
+            $('#livingroom_currentHumidity').html(data[0].values[0][2] + unit);
+            $('#eirasroom_currentHumidity').html(data[0].values[0][3] + unit);
+            $('#outside_currentHumidity').html(data[0].values[0][4] + unit);
+            $('#inside_avgHumidity').html(data[1].values[0] + unit);
         }
 
-        function responseHandlerBattery(response) {
-            unit = getUnitFor('Battery')
-            // $('#current_date').html(moment(response.result.valueRanges[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
-            $('#bedroom_currentBattery').html(response.result.valueRanges[0].values[0][1] + unit);
+        function responseHandlerBattery(data, dataType) {
+            unit = getUnitFor(dataType)
+            // $('#current_date').html(moment(data[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
+            $('#bedroom_currentBattery').html(data[0].values[0][1] + unit);
             $('#livingroom_currentBattery').html("n/a");
-            $('#eirasroom_currentBattery').html(response.result.valueRanges[0].values[0][3] + unit);
+            $('#eirasroom_currentBattery').html(data[0].values[0][3] + unit);
             $('#outside_currentBattery').html("");
             $('#inside_avgBattery').html("--");
         }
@@ -249,32 +249,6 @@
                 }
             });
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -463,40 +437,6 @@
           alert('Sign in failed!');
         }
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 </script>
 
