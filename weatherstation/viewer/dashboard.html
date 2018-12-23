@@ -5,7 +5,7 @@
     <meta name="mobile-web-app-capable" content="yes"> <!-- full screen support -->
     <meta name="apple-mobile-web-app-capable" content="yes"> <!-- full screen support -->
 
-    <title>Weatherstation</title>
+    <title>Weather Station</title>
 
     <link href="./img/icon-192x192.png" rel="apple-touch-icon"/>
     <link href="./img/icon-192x192.png" rel="icon" sizes="192x192"/>
@@ -49,15 +49,16 @@
         $(document).ready(function() {
             handleClientLoad();
 
-            //queryMostRecent();
-            //updateDateRangePicker();
-
             $('#btn-chart').on('click', function() {
                 var datatype = document.getElementById('datatype').value;
                 showChart(datatype, start.format('YYYY/MM/DD+HH:mm:ss'), end.format('YYYY/MM/DD+HH:mm:ss'));
-                // FIXME
             })
         });
+
+        function initWeatherstation() {
+            queryMostRecent();
+            updateDateRangePicker();
+        }
 
         google.load('visualization', '1', {
             packages: ['line', 'corechart']
@@ -97,8 +98,7 @@
 
             google.visualization.drawChart({
                 "containerId": "visualization_chart_div",
-                "dataSourceUrl": "https://docs.google.com/spreadsheets/d/" + spreadSheetId + "/gviz/tq?sheet=Data&headers=1" +
-                    "&access_token=" + encodeURIComponent(gapi.auth2.getAuthInstance().currentUser.get().getAuthResponse().access_token) + "&tq=",
+                "dataSourceUrl": "https://docs.google.com/spreadsheets/d/" + spreadSheetId + "/gviz/tq?sheet=Data&headers=1&tq=",
                 "query":query,
                 "chartType": "Line",
                 "options": google.charts.Line.convertOptions(options)
@@ -244,17 +244,12 @@
                 dataType: 'json',
                 data: '{"to":"/topics/actions","data":{"action":"' + action + '"},"priority":"high"}',
                 success: function(data){
-                    console.log('succes: '+data);
+                    console.log('success: '+data);
                     queryMostRecent();
                     updateDateRangePicker();
                 }
             });
         }
-
-
-
-
-
 
 
 
@@ -381,11 +376,6 @@
     </div>
 </div>
 
-<div>
-    <!--Add buttons to initiate auth sequence and sign out-->
-    <button id="authorize-button" style="visibility: hidden;">Authorize</button>
-</div>
-
 <script type="text/javascript">
       // Client ID and API key from the Developer Console
       var CLIENT_ID = '64745461749-ibf09nuhtdut8u207aqv0dhaedsp3rn1.apps.googleusercontent.com';
@@ -397,8 +387,6 @@
       // Authorization scopes required by the API; multiple scopes can be
       // included, separated by spaces.
       var SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
-
-      var authorizeButton = document.getElementById('authorize_button');
 
       /**
        *  On load, called to load the auth2 library and API client library.
@@ -418,15 +406,25 @@
           discoveryDocs: DISCOVERY_DOCS,
           scope: SCOPES
         }).then(function () {
-            // Listen for sign-in state changes.
-            gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
 
-            if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
-                gapi.auth2.getAuthInstance().signIn();
+            // Goal: Share sheets with specific accounts instead of everybody. Chart does not work since it does
+            // not use authenticated gapi.client. Needs some more trying with access_token
+            var useOauth = false;
+
+            if (useOauth) {
+                // Listen for sign-in state changes.
+                gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+
+                if (!gapi.auth2.getAuthInstance().isSignedIn.get()) {
+                    gapi.auth2.getAuthInstance().signIn();
+                }
+
+                // Handle the initial sign-in state.
+                updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+            } else {
+                initWeatherstation();
             }
 
-            // Handle the initial sign-in state.
-            updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         }, function(error) {
           alert(JSON.stringify(error, null, 2));
         });
@@ -438,12 +436,12 @@
        */
       function updateSigninStatus(isSignedIn) {
         if (isSignedIn) {
-          queryMostRecent();
-          updateDateRangePicker();
+            initWeatherstation();
         } else {
-          alert('Please sign in. Please make sure not to block the sign-in pop-up.');
+            alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
+
 
 
 
