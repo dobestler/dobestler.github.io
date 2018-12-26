@@ -10,8 +10,8 @@ class AlertingConfig implements Serializable {
 
     public AlertingConfig() {
         super();
-        upperThresholdHumidity = 60.0f; // Default
-        lowerThresholdHumidity = 48.0f; // Default
+        upperThresholdHumidity = 58.0f; // Default
+        lowerThresholdHumidity = 43.0f; // Default
     }
 
     public float getLowerThresholdHumidity() {

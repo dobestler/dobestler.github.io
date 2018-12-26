@@ -7,23 +7,45 @@ package com.home.weatherstation;
 import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.client.util.ExponentialBackOff;
+
+import java.io.IOException;
+import java.util.Arrays;
+
 public class AuthActivity extends Activity {
+
+    public static final int RESULT_FAILED = 99;
 
     private static final String TAG = AuthActivity.class.getSimpleName();
 
-    private static final int ACCOUNT_CODE = 1601;
     private static final int PERMISSIONS_REQUEST_CODE = 1;
-    private Authenticator authenticator;
+    private static final int REQUEST_ACCOUNT_PICKER = 1000;
+    private static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
+
+    private AuthPreferences authPreferences;
     private AndroidPermissions mPermissions;
+    private GoogleAccountCredential credential;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        credential = GoogleAccountCredential.usingOAuth2(
+                getApplicationContext(), Arrays.asList(UploadService.SCOPES))
+                .setBackOff(new ExponentialBackOff());
+
+        authPreferences = new AuthPreferences(this);
 
         mPermissions = new AndroidPermissions(this,
                 Manifest.permission.BLUETOOTH,
@@ -32,10 +54,10 @@ public class AuthActivity extends Activity {
                 Manifest.permission.INTERNET,
                 Manifest.permission.GET_ACCOUNTS);
 
-        ensurePermissions();
+        ensurePreconditions();
     }
 
-    private void ensurePermissions() {
+    private void ensurePreconditions() {
         if (mPermissions.checkPermissions()) {
             doStart();
         } else {
@@ -53,22 +75,29 @@ public class AuthActivity extends Activity {
         if (mPermissions.areAllRequiredPermissionsGranted(permissions, grantResults)) {
             doStart();
         } else {
-            showError();
+            showError("Can not start: Insufficient Permissions");
         }
     }
 
     private void doStart() {
-        authenticator = new Authenticator(this);
-        authenticator.invalidateToken();
-        if (!authenticator.hasUser()) {
-            chooseAccount();
+        if (!isGooglePlayServicesAvailable()) {
+            acquireGooglePlayServices();
+        } else if (authPreferences.getUser() == null) {
+            startActivityForResult(credential.newChooseAccountIntent(), REQUEST_ACCOUNT_PICKER);
         } else {
-            returnAndFinish();
+            credential.setSelectedAccountName(authPreferences.getUser());
+            new MakeRequestTask(credential).execute();
         }
     }
 
-    private void showError() {
-        Toast.makeText(this, "Can not start: Insufficient Permissions", Toast.LENGTH_SHORT).show();
+    private void showError(String message) {
+        Log.e(TAG, message);
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    private void returnFailedAndFinish() {
+        setResult(RESULT_FAILED);
+        finish();
     }
 
     private void returnAndFinish() {
@@ -76,38 +105,116 @@ public class AuthActivity extends Activity {
         finish();
     }
 
-    private void chooseAccount() {
-        // use https://github.com/frakbot/Android-AccountChooser for compatibility with older devices
-        Intent intent = AccountManager.newChooseAccountIntent(null, null,
-                new String[]{"com.google"}, false, null, null, null, null);
-        startActivityForResult(intent, ACCOUNT_CODE);
+    /**
+     * Check that Google Play services APK is installed and up to date.
+     *
+     * @return true if Google Play Services is available and up to
+     * date on this device; false otherwise.
+     */
+    private boolean isGooglePlayServicesAvailable() {
+        final int connectionStatusCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this);
+        return connectionStatusCode == ConnectionResult.SUCCESS;
+    }
+
+    /**
+     * Attempt to resolve a missing, out-of-date, invalid or disabled Google
+     * Play Services installation via a user dialog, if possible.
+     */
+    private void acquireGooglePlayServices() {
+        GoogleApiAvailability apiAvailability =
+                GoogleApiAvailability.getInstance();
+        final int connectionStatusCode =
+                apiAvailability.isGooglePlayServicesAvailable(this);
+        if (apiAvailability.isUserResolvableError(connectionStatusCode)) {
+            showGooglePlayServicesAvailabilityErrorDialog(connectionStatusCode);
+        }
+    }
+
+
+    /**
+     * Display an error dialog showing that Google Play Services is missing
+     * or out of date.
+     *
+     * @param connectionStatusCode code describing the presence (or lack of)
+     *                             Google Play Services on this device.
+     */
+    void showGooglePlayServicesAvailabilityErrorDialog(
+            final int connectionStatusCode) {
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        Dialog dialog = apiAvailability.getErrorDialog(
+                AuthActivity.this,
+                connectionStatusCode,
+                REQUEST_GOOGLE_PLAY_SERVICES);
+        dialog.show();
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (resultCode == RESULT_OK) {
-            if (requestCode == ACCOUNT_CODE) {
-                String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
-                authenticator.setUser(accountName);
-
-                // invalidate old tokens which might be cached. we want a fresh
-                // one, which is guaranteed to work
-                authenticator.invalidateToken();
-
-                authenticator.requestToken(new AuthenticatorCallback() {
-                    @Override
-                    public void doCoolAuthenticatedStuff() {
-                        returnAndFinish();
+        switch (requestCode) {
+            case REQUEST_GOOGLE_PLAY_SERVICES:
+                if (resultCode != RESULT_OK) {
+                    showError("This app requires Google Play Services. Please install " +
+                            "Google Play Services on your device and relaunch this app.");
+                } else {
+                    doStart();
+                }
+                break;
+            case REQUEST_ACCOUNT_PICKER:
+                if (resultCode == RESULT_OK && data != null && data.getExtras() != null) {
+                    String accountName = data.getStringExtra(AccountManager.KEY_ACCOUNT_NAME);
+                    if (accountName != null) {
+                        authPreferences.setUser(accountName);
+                        doStart();
                     }
+                } else {
+                    showError("This app requires a valid account for authorization.");
+                }
+                break;
 
-                    @Override
-                    public void failed() {
-                        Log.e(TAG, "Failed to get token.");
-                    }
-                });
+        }
+    }
+
+    /**
+     * Background task to test authentication
+     */
+    private class MakeRequestTask extends AsyncTask<Void, Void, String> {
+        private final GoogleAccountCredential credential;
+
+        MakeRequestTask(GoogleAccountCredential credential) {
+            this.credential = credential;
+        }
+
+        @Override
+        protected String doInBackground(Void... params) {
+            try {
+                String oauthToken = credential.getToken();
+                Log.d(TAG, "Acquired token " + oauthToken);
+                return oauthToken;
+            } catch (GoogleAuthException | IOException e) {
+                e.printStackTrace();
+                return null;
             }
+        }
+
+        @Override
+        protected void onPreExecute() {
+            //
+        }
+
+        @Override
+        protected void onPostExecute(String output) {
+            if (output == null) {
+                returnFailedAndFinish();
+            } else {
+                returnAndFinish();
+            }
+        }
+
+        @Override
+        protected void onCancelled() {
+            showError("Async authentication cancelled!");
         }
     }
 

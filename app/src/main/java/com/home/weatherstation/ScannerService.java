@@ -201,20 +201,7 @@ public class ScannerService extends Service {
     }
 
     private void scanAndUpload() {
-        Authenticator authenticator = new Authenticator(getBaseContext());
-        authenticator.invalidateToken();
-        authenticator.requestToken(new AuthenticatorCallback() {
-            @Override
-            public void doCoolAuthenticatedStuff() {
-                scanLeDevice();
-            }
-
-            @Override
-            public void failed() {
-                Log.e(TAG, "Could not start scan because authentication failed!");
-            }
-        });
-
+        scanLeDevice();
     }
 
     private void scanLeDevice() {

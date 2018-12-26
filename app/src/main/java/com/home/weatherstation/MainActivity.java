@@ -42,6 +42,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     private Button scanAndUploadNowButton;
 
+    private Button testUpload; //FIXME
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +70,19 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void onClick(View view) {
                 scanAndUploadNow();
+            }
+        });
+
+        testUpload = (Button) findViewById(R.id.test_upload);
+        testUpload.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                UploadService.checkThresholds(MainActivity.this, Storage.readAlertingConfig(MainActivity.this));
+                Date now = new Date();
+                Sample d08 = new Sample(now, "DeviceNo8", 83.3f, 28, 8);
+                Sample d09 = new Sample(now, "DeviceNo9", 93.3f, 29, 9);
+                Sample d10 = new Sample(now, "DeviceNo10", 103.3f, 20, 10);
+                UploadService.startUpload(MainActivity.this, now, d08, d09, d10);
             }
         });
 
