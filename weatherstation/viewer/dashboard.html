@@ -42,6 +42,9 @@
         var spreadsheetIdTemperature = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
         var spreadsheetIdHumidity = '1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4';
         var spreadsheetIdBattery = '1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk';
+        var sheetIdTemperatureData = '1714261182';
+        var sheetIdHumidityData = '1714261182';
+        var sheetIdBatteryData = '1714261182';
 
         var start = moment().subtract(1, 'days');
         var end = moment();
@@ -53,6 +56,7 @@
                 var datatype = document.getElementById('datatype').value;
                 showChart(datatype, start.format('YYYY/MM/DD+HH:mm:ss'), end.format('YYYY/MM/DD+HH:mm:ss'));
             })
+
         });
 
         function initWeatherstation() {
@@ -60,51 +64,172 @@
             updateDateRangePicker();
         }
 
-        google.load('visualization', '1', {
-            packages: ['line', 'corechart']
-        });
+        google.charts.load('current', {'packages':['line']});
 
         function drawChart(dataType, start, end) {
-            var query =
-                "SELECT A, B, C, D, E" +
-                " WHERE A >= datetime '" + start + "' AND A <= datetime '" + end + "'" +
-                " ORDER BY A DESC" +
-                " OFFSET 1" +
-                " LABEL A 'Date', B 'Bedroom', C 'Living room', D 'Eira’s room', E 'Outside'";
-
             var spreadSheetId = "";
+            var sheetId = "";
             switch (dataType) {
                 case 'Humidity':
                     spreadSheetId = spreadsheetIdHumidity;
+                    sheetId = sheetIdHumidityData;
                     break;
                 case 'Pressure':
                 case 'Temperature':
                     spreadSheetId = spreadsheetIdTemperature;
+                    sheetId = sheetIdTemperatureData;
                     break;
                 case 'Battery':
                     spreadSheetId = spreadsheetIdBattery;
+                    sheetId = sheetIdBatteryData;
                     break;
             }
 
+            var query =
+                "SELECT A, B, C, D, E" +
+                " WHERE A >= datetime '" + start + "' AND A <= datetime '" + end + "'" +
+                " ORDER BY A DESC" +
+                " OFFSET 1";
+
+            var url = "https://docs.google.com/spreadsheets/d/" + spreadSheetId + "/gviz/tq?gid=" + sheetId + "&headers=1&key=" + API_KEY + "&tq=";
+            //console.log(url + encodeURIComponent(query));
+
+            var q = new google.visualization.Query(url + encodeURIComponent(query));
+            q.send(handleChartQueryResponse);
+        }
+
+        function handleChartQueryResponse(response) {
+            var data = response.getDataTable();
+            //console.log(data.toJSON());
+
+            var max_rows = 24 * 3 * 7 // equals 7 days on highest resolution (= 1 sample every 20mins)
+
+            //console.log("Max Samples: " + max_rows + ", Samples in response: " + data.getNumberOfRows());
+            var dataForChart;
+            if (data.getNumberOfRows() <= max_rows) {
+                dataForChart = data;
+            } else {
+                dataForChart = downsample(data, max_rows);
+            }
+
+            var chart = new google.charts.Line(document.getElementById('visualization_chart_div'));
             var options = {
                 chart: {
                   title: document.getElementById('datatype').value + ' data',
-                  subtitle: 'in ' + getUnitFor(document.getElementById('datatype').value)
+                  subtitle: 'in ' + getUnitFor(document.getElementById('datatype').value),
+                  interpolateNulls: true,
+                  legend: { position: 'bottom' },
                 },
-                legend: { position: 'bottom' },
                 width: document.getElementById('visualization_chart_div').style.width,
                 height: $(document).height()/2,
             };
-
-            google.visualization.drawChart({
-                "containerId": "visualization_chart_div",
-                "dataSourceUrl": "https://docs.google.com/spreadsheets/d/" + spreadSheetId + "/gviz/tq?sheet=Data&headers=1&tq=",
-                "query":query,
-                "chartType": "Line",
-                "options": google.charts.Line.convertOptions(options)
-            });
-
+            chart.draw(dataForChart, google.charts.Line.convertOptions(options));
         }
+
+        function downsample(data, max_rows) {
+
+            var dataSampled = new google.visualization.DataTable();
+
+            var samplesPerRow = Math.ceil(data.getNumberOfRows() / max_rows);
+            var buckets = Math.ceil(data.getNumberOfRows() / samplesPerRow);
+
+            //console.log("Downsampling from " + data.getNumberOfRows() + " to " + buckets + " buckets of size " + samplesPerRow);
+
+            dataSampled.addColumn({id: data.getColumnId(0), label: data.getColumnLabel(0), type: data.getColumnType(0), pattern: 'yyyy-mm-dd h:mm:ss'});
+            dataSampled.addColumn({id: data.getColumnId(1), label: data.getColumnLabel(1), type: data.getColumnType(1), pattern: 'General'});
+            dataSampled.addColumn({id: data.getColumnId(2), label: data.getColumnLabel(2), type: data.getColumnType(2), pattern: 'General'});
+            dataSampled.addColumn({id: data.getColumnId(3), label: data.getColumnLabel(3), type: data.getColumnType(3), pattern: 'General'});
+            dataSampled.addColumn({id: data.getColumnId(4), label: data.getColumnLabel(4), type: data.getColumnType(4), pattern: 'General'});
+
+            dataSampled.addRows(buckets);
+
+            var i;
+            var j;
+            var lastIndexOfBatch;
+            var batchRows;
+
+            var sampledDateMilliesSum;
+            var sampledD8Sum;
+            var sampledD9Sum;
+            var sampledD10Sum;
+            var sampledOutsideSum;
+
+            var countD8;
+            var countD9;
+            var countD10;
+            var countOutside;
+
+            for (i = 0; i < buckets; i++) {
+
+                //console.log("Downsampling | Bucket " + (i+1) + " of " + buckets);
+
+                rowsToBatch = data.getNumberOfRows() - i*samplesPerRow
+                if (rowsToBatch < samplesPerRow)
+                    lastIndexOfBatch = data.getNumberOfRows();
+                else
+                    lastIndexOfBatch = (i+1) * samplesPerRow;
+
+                sampledDateMilliesSum = 0;
+                sampledD8Sum = 0;
+                sampledD9Sum = 0;
+                sampledD10Sum = 0;
+                sampledOutsideSum = 0;
+
+                countDate = 0;
+                countD8 = 0;
+                countD9 = 0;
+                countD10 = 0;
+                countOutside = 0;
+
+                for (j = i * samplesPerRow; j < lastIndexOfBatch; j++) {
+                    sampledDateMilliesSum += data.getValue(j,0).getTime();
+                    countDate++;
+
+                    if (data.getValue(j,1) !== null) {
+                        sampledD8Sum += data.getValue(j,1);
+                        countD8++;
+                    }
+                    if (data.getValue(j,2) !== null) {
+                        sampledD9Sum += data.getValue(j,2);
+                        countD9++;
+                    }
+                    if (data.getValue(j,3) !== null) {
+                        sampledD10Sum += data.getValue(j,3);
+                        countD10++;
+                    }
+                    if (data.getValue(j,4) !== null) {
+                        sampledOutsideSum += data.getValue(j,4);
+                        countOutside++;
+                    }
+
+                    //console.log("Downsampling |   Sample " + (j+1) + " of " + (lastIndexOfBatch) + "\n" +
+                    //            "                   Date     " + data.getValue(j,0) + "\n" +
+                    //            "                   Device10 " + data.getValue(j,3));
+                }
+
+                var sampledDate = new Date(sampledDateMilliesSum/countDate);
+                var sampledD8 = (countD8 > 0 ? (sampledD8Sum/countD8).toFixed(1) : null);
+                var sampledD9 = (countD9 > 0 ? (sampledD9Sum/countD9).toFixed(1) : null);
+                var sampledD10 = (countD10 > 0 ? (sampledD10Sum/countD10).toFixed(1) : null);
+                var sampledOutside = (countOutside > 0 ? (sampledOutsideSum/countOutside).toFixed(1) : null);
+
+                dataSampled.setCell(i, 0, sampledDate, moment(sampledDate).format("YYYY-MM-DD HH:mm:ss"));
+                dataSampled.setCell(i, 1, sampledD8, String(sampledD8));
+                dataSampled.setCell(i, 2, sampledD9, String(sampledD9));
+                dataSampled.setCell(i, 3, sampledD10, String(sampledD10));
+                dataSampled.setCell(i, 4, sampledOutside, String(sampledOutside));
+
+                //console.log("Downsampling |   ===> Date     " + sampledDate + "\n" +
+                //            "                      Device10 " + sampledD10);
+            }
+
+            console.log("Downsampling | Processed " + j + " samples of total " + data.getNumberOfRows() + " and downsampled to " + dataSampled.getNumberOfRows());
+
+            //console.log("Downsampling\n" + dataSampled.toJSON());
+
+            return dataSampled;
+        }
+
 
         //FIXME still needed? chart seems to be able to display larger ranges but is very slow?
         function showChart(datatype, start, end) {
@@ -444,12 +569,6 @@
 
 
 
-
-
-
-
 </script>
-
-
 </body>
 </html>
