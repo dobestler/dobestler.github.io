@@ -21,6 +21,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 
 
@@ -77,12 +78,17 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
         testUpload.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                UploadService.checkThresholds(MainActivity.this, Storage.readAlertingConfig(MainActivity.this));
-                Date now = new Date();
-                Sample d08 = new Sample(now, "DeviceNo8", 83.3f, 28, 8);
-                Sample d09 = new Sample(now, "DeviceNo9", 93.3f, 29, 9);
-                Sample d10 = new Sample(now, "DeviceNo10", 103.3f, 20, 10);
-                UploadService.startUpload(MainActivity.this, now, d08, d09, d10);
+                // FIXME start remove
+                Date noww = new Date();
+                Calendar cal = Calendar.getInstance();
+                cal.setTime(noww);
+                float temp = cal.get(Calendar.HOUR_OF_DAY) + ((float) (cal.get(Calendar.MINUTE) / 10));
+                int hum = 40 + (cal.get(Calendar.MINUTE) / 10);
+                Sample deviceNr8 = new Sample(noww, "DeviceNo8", temp, hum, 8);
+                Sample deviceNr9 = new Sample(noww, "DeviceNo9", temp + 1.5f, hum + 2, 9);
+                Sample deviceNr10 = new Sample(noww, "DeviceNo10", temp + 2.5f, hum + 4, 10);
+                // FIXME end
+                UploadService.startUpload(MainActivity.this, noww, deviceNr8, deviceNr9, deviceNr10);
             }
         });
 
