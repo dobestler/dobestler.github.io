@@ -260,17 +260,6 @@
     </LinearLayout>
 
     <Button
-        android:id="@+id/test_upload"
-        style="@style/Widget.AppCompat.Button.Colored"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBaseline="@id/scan_now_button"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="2dp"
-        android:layout_toStartOf="@id/scan_now_button"
-        android:text="Test Upload"/>
-
-    <Button
         android:id="@+id/scan_now_button"
         style="@style/Widget.AppCompat.Button.Colored"
         android:layout_width="wrap_content"

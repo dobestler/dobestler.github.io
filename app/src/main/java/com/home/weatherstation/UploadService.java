@@ -201,15 +201,15 @@ public class UploadService extends IntentService {
     private void insert(Sheets sheetsApi, Date timestamp, Sample device8, Sample device9, Sample device10, Sample outside) throws IOException, JSONException {
         CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
 
-//        try {
-        //FIXME @deprecated
-        //FIXME activate for a while
-//            insert(TEMPERATURE_TABLE_ID, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
-//            insert(HUMIDITY_TABLE_ID, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
-//            insert(BATTERY_TABLE_ID, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
-//        } catch (GoogleAuthException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            //FIXME @deprecated
+            //FIXME activate for a while
+            insert(TEMPERATURE_TABLE_ID, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
+            insert(HUMIDITY_TABLE_ID, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
+            insert(BATTERY_TABLE_ID, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
+        } catch (GoogleAuthException e) {
+            e.printStackTrace();
+        }
 
         insert(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
         insert(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());

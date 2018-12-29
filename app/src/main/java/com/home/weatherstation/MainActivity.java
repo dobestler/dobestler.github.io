@@ -21,7 +21,6 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
 import java.util.Date;
 
 
@@ -42,8 +41,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private TextView thresholdAlertHumidity;
 
     private Button scanAndUploadNowButton;
-
-    private Button testUpload; //FIXME
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,24 +68,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             @Override
             public void onClick(View view) {
                 scanAndUploadNow();
-            }
-        });
-
-        testUpload = (Button) findViewById(R.id.test_upload);
-        testUpload.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                // FIXME start remove
-                Date noww = new Date();
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(noww);
-                float temp = cal.get(Calendar.HOUR_OF_DAY) + ((float) (cal.get(Calendar.MINUTE) / 10));
-                int hum = 40 + (cal.get(Calendar.MINUTE) / 10);
-                Sample deviceNr8 = new Sample(noww, "DeviceNo8", temp, hum, 8);
-                Sample deviceNr9 = new Sample(noww, "DeviceNo9", temp + 1.5f, hum + 2, 9);
-                Sample deviceNr10 = new Sample(noww, "DeviceNo10", temp + 2.5f, hum + 4, 10);
-                // FIXME end
-                UploadService.startUpload(MainActivity.this, noww, deviceNr8, deviceNr9, deviceNr10);
             }
         });
 
