@@ -1,6 +1,7 @@
 package com.home.weatherstation;
 
 import android.app.AlarmManager;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
@@ -23,6 +24,8 @@ import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -32,6 +35,8 @@ import bluemaestro.utility.sdk.ble.ScanRecordParser;
 import bluemaestro.utility.sdk.devices.BMTempHumi;
 
 public class ScannerService extends Service {
+    private static final int NOTIFICATION_ID = 101;
+
     private static final String START_SCHEDULER = "com.home.weatherstation.action.start_scheduled_scans";
     private static final String STOP_SCHEDULER = "com.home.weatherstation.action.stop_scheduled_scans";
     private static final String SCAN_AND_UPLOAD = "com.home.weatherstation.action.scan_and_upload";
@@ -84,6 +89,8 @@ public class ScannerService extends Service {
         }
     };
 
+    private ServiceHelper serviceHelper;
+
     public static Intent buildStartSchedulerIntent(Context context) {
         Intent serviceIntent = new Intent(context, ScannerService.class);
         serviceIntent.setAction(ScannerService.START_SCHEDULER);
@@ -119,6 +126,8 @@ public class ScannerService extends Service {
 
     @Override
     public void onCreate() {
+        serviceHelper = new ServiceHelper();
+
         alarmMgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
         mHandler = new Handler();
@@ -131,6 +140,9 @@ public class ScannerService extends Service {
                 //.setReportDelay(500)
                 .build();
 
+
+        startForeground(NOTIFICATION_ID, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_MIN, getNotificationText(), true));
+
         super.onCreate();
     }
 
@@ -138,6 +150,7 @@ public class ScannerService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action;
         boolean scheduleNext;
+
         if (intent == null) {
             action = START_SCHEDULER;
             scheduleNext = false;
@@ -157,13 +170,21 @@ public class ScannerService extends Service {
             scanAndUpload();
         }
 
+        // Update notification
+        ((NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE))
+                .notify(NOTIFICATION_ID,
+                        serviceHelper.createNotification(
+                                this, NotificationManager.IMPORTANCE_MIN,
+                                getNotificationText(), true));
+
+
         return START_REDELIVER_INTENT;
     }
 
 
     private void scheduleNextScan() {
         Log.i(TAG, "Scheduling next scan ...");
-        alarmIntent = PendingIntent.getService(this, 0, buildScanAndUploadAndScheduleNextIntent(this), PendingIntent.FLAG_UPDATE_CURRENT);
+        alarmIntent = serviceHelper.getForegroundServicePendingIntent(this, buildScanAndUploadAndScheduleNextIntent(this));
         long triggerTime = calculateNextTwentyMinsInMillis();
         alarmMgr.setAlarmClock(new AlarmManager.AlarmClockInfo(triggerTime, PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT)), alarmIntent);
         Log.i(TAG, "Next scan scheduled at " + new Date(triggerTime));
@@ -198,6 +219,8 @@ public class ScannerService extends Service {
             alarmIntent.cancel();
             alarmIntent = null;
         }
+
+
     }
 
     private void scanAndUpload() {
@@ -281,7 +304,7 @@ public class ScannerService extends Service {
         cal.setTime(noww);
         float temp = cal.get(Calendar.HOUR_OF_DAY) + ((float) (cal.get(Calendar.MINUTE) / 10));
         int hum = 40 + (cal.get(Calendar.MINUTE) / 10);
-        deviceNr8 = new Sample(noww, "DeviceNo8", temp, hum, 8);
+        deviceNr8 = new Sample(noww, "DeviceNo8", 30.0f, 70, 120);
         deviceNr9 = new Sample(noww, "DeviceNo9", temp + 1.5f, hum + 2, 9);
         deviceNr10 = new Sample(noww, "DeviceNo10", temp + 2.5f, hum + 4, 10);
         // FIXME end
@@ -290,7 +313,8 @@ public class ScannerService extends Service {
             Storage.storeLastSuccessfulScanTime(getBaseContext(), now);
             Storage.storeIncompleteScans(getBaseContext(), 0); // reset
             upload();
-            UploadService.checkThresholds(this, Storage.readAlertingConfig(this)); // could be done only once a day instead of for every scan cycle
+            Intent intent = UploadService.buildCheckThresholdsIntent(this, Storage.readAlertingConfig(this)); // could be done only once a day instead of for every scan cycle
+            serviceHelper.startForegroundService(this, intent);
         } else {
             handleIncompleteScan();
 
@@ -307,7 +331,8 @@ public class ScannerService extends Service {
     private void upload() {
         Date timestamp = deviceNr8 != null ? deviceNr8.getTimestamp() : (deviceNr9 != null ? deviceNr9.getTimestamp() : deviceNr10.getTimestamp());
         Log.i(TAG, "Processing samples timestamp=" + timestamp + "\n" + deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10);
-        UploadService.startUpload(this, timestamp, deviceNr8, deviceNr9, deviceNr10);
+        Intent intent = UploadService.buildStartUploadIntent(this, timestamp, deviceNr8, deviceNr9, deviceNr10);
+        serviceHelper.startForegroundService(this, intent);
     }
 
     private void handleIncompleteScan() {
@@ -367,7 +392,8 @@ public class ScannerService extends Service {
 
     // Old (bigger) devices
     @Nullable
-    private Sample parse(ScanRecord record, Date date, float tempCalibrationShift, double relhumCalibrationMultiplier) {
+    private Sample parse(ScanRecord record, Date date, float tempCalibrationShift,
+                         double relhumCalibrationMultiplier) {
 
         byte[] manufacturerSpecData = record.getManufacturerSpecificData().valueAt(0);
 
@@ -390,7 +416,8 @@ public class ScannerService extends Service {
 
     // New (smaller and colored) devices. See app/external/Temperature-Humidity-Data-Logger-Commands-API.pdf for the protocol
     @Nullable
-    private Sample parseNewDevice(ScanRecord record, Date date, float tempCalibrationShift, double relhumCalibrationMultiplier) {
+    private Sample parseNewDevice(ScanRecord record, Date date, float tempCalibrationShift,
+                                  double relhumCalibrationMultiplier) {
         ScanRecordParser parser = new ScanRecordParser(record.getBytes());
         BMTempHumi bmTempHumi = new BMTempHumi(parser.getManufacturerData(), parser.getScanResponseData());
         return new Sample(date, record.getDeviceName(), (float) bmTempHumi.getCurrentTemperature() + tempCalibrationShift, (int) Math.round(bmTempHumi.getCurrentHumidity() * relhumCalibrationMultiplier), bmTempHumi.getBatteryLevel());
@@ -400,5 +427,19 @@ public class ScannerService extends Service {
         AlarmManager.AlarmClockInfo nextAlarmClock = ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).getNextAlarmClock();
         return nextAlarmClock != null ? nextAlarmClock.getTriggerTime() : -1;
     }
+
+
+    private String getNotificationText() {
+        String text = "";
+        long nextTriggerTime = ScannerService.getNextScheduled(this);
+        DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+        if (nextTriggerTime > -1) {
+            text = "Next scan: " + df.format(new Date(nextTriggerTime));
+        } else {
+            text = "Next scan: NONE";
+        }
+        return text;
+    }
+
 
 }

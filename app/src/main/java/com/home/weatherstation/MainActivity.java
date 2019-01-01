@@ -42,10 +42,14 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     private Button scanAndUploadNowButton;
 
+    private ServiceHelper serviceHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        serviceHelper = new ServiceHelper();
 
         schedulerStatus = (TextView) findViewById(R.id.status);
         startSchedulerButton = (Button) findViewById(R.id.start_button);
@@ -139,18 +143,18 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     }
 
     private void scanAndUploadNow() {
-        startService(ScannerService.buildScanAndUploadIntent(this));
+        serviceHelper.startForegroundService(this, ScannerService.buildScanAndUploadIntent(this));
     }
 
     private void start() {
         startSchedulerButton.setEnabled(false);
-        startService(ScannerService.buildStartSchedulerIntent(this));
+        serviceHelper.startForegroundService(this, ScannerService.buildStartSchedulerIntent(this));
         updateStatusScheduler();
     }
 
     private void stop() {
         stopSchedulerButton.setEnabled(false);
-        startService(ScannerService.buildStopSchedulerIntent(this));
+        serviceHelper.startForegroundService(this, ScannerService.buildStopSchedulerIntent(this));
         updateStatusScheduler();
     }
 

@@ -1,8 +1,13 @@
 package com.home.weatherstation;
 
 import android.app.IntentService;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
@@ -50,6 +55,8 @@ import javax.net.ssl.HttpsURLConnection;
  */
 public class UploadService extends IntentService {
 
+    private static final int ID_SERVICE = 202;
+
     private static final String TAG = UploadService.class.getSimpleName();
 
     public static final String[] SCOPES = {SheetsScopes.SPREADSHEETS, "https://www.googleapis.com/auth/fusiontables" }; //FIXME remove fusiontable
@@ -78,6 +85,8 @@ public class UploadService extends IntentService {
 
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
 
+    private ServiceHelper serviceHelper;
+
     public UploadService() {
         super("UploadService");
     }
@@ -85,11 +94,11 @@ public class UploadService extends IntentService {
     /**
      * Sends an alert if the average value for the last 7 days is below or above the thresholds.
      */
-    public static void checkThresholds(final Context context, final AlertingConfig config) {
+    public static Intent buildCheckThresholdsIntent(final Context context, final AlertingConfig config) {
         Intent intent = new Intent(context, UploadService.class);
         intent.setAction(ACTION_CHECK_THRESHOLDS);
         intent.putExtra(EXTRA_ALERTING_CONFIG, config);
-        context.startService(intent);
+        return intent;
     }
 
     /**
@@ -98,10 +107,10 @@ public class UploadService extends IntentService {
      *
      * @see IntentService
      */
-    public static void startUpload(final Context context, final Date timestamp, final Sample sampleDeviceNo8, final Sample sampleDeviceNo9, final Sample sampleDeviceNo10) {
+    public static Intent buildStartUploadIntent(final Context context, final Date timestamp, final Sample sampleDeviceNo8, final Sample sampleDeviceNo9, final Sample sampleDeviceNo10) {
         if (sampleDeviceNo8 == null && sampleDeviceNo9 == null && sampleDeviceNo10 == null) {
             Log.w(TAG, "Not starting upload because all samples are null");
-            return;
+            return null;
         }
 
         Intent intent = new Intent(context, UploadService.class);
@@ -110,7 +119,7 @@ public class UploadService extends IntentService {
         intent.putExtra(EXTRA_SAMPLE_DEVICE8, getSample("Device8", sampleDeviceNo8));
         intent.putExtra(EXTRA_SAMPLE_DEVICE9, getSample("Device9", sampleDeviceNo9));
         intent.putExtra(EXTRA_SAMPLE_DEVICE10, getSample("Device10", sampleDeviceNo10));
-        context.startService(intent);
+        return intent;
     }
 
     private static Sample getSample(final String name, final Sample sample) {
@@ -125,6 +134,11 @@ public class UploadService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
+
+            serviceHelper = new ServiceHelper();
+
+            startForeground(ID_SERVICE, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
+
             final String action = intent.getAction();
             if (ACTION_UPLOAD.equals(action)) {
                 final Date timestamp = new Date(intent.getLongExtra(EXTRA_TIMESTAMP, System.currentTimeMillis()));
@@ -135,7 +149,7 @@ public class UploadService extends IntentService {
                 Log.i(TAG, "" + sampleOutside);
                 upload(getSheetsApi(), timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
-                checkThresholds(getSheetsApi(), (AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
+                buildCheckThresholdsIntent(getSheetsApi(), (AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
             } else {
                 Log.w(TAG, "Unknown action: " + action);
             }
@@ -201,15 +215,15 @@ public class UploadService extends IntentService {
     private void insert(Sheets sheetsApi, Date timestamp, Sample device8, Sample device9, Sample device10, Sample outside) throws IOException, JSONException {
         CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
 
-        try {
-            //FIXME @deprecated
-            //FIXME activate for a while
-            insert(TEMPERATURE_TABLE_ID, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
-            insert(HUMIDITY_TABLE_ID, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
-            insert(BATTERY_TABLE_ID, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
-        } catch (GoogleAuthException e) {
-            e.printStackTrace();
-        }
+//        try {
+//            //FIXME @deprecated
+//            //FIXME activate for a while
+//            insert(TEMPERATURE_TABLE_ID, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
+//            insert(HUMIDITY_TABLE_ID, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
+//            insert(BATTERY_TABLE_ID, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
+//        } catch (GoogleAuthException e) {
+//            e.printStackTrace();
+//        }
 
         insert(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
         insert(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
@@ -313,7 +327,7 @@ public class UploadService extends IntentService {
         Log.v(TAG, response);
     }
 
-    private void checkThresholds(Sheets sheetsApi, final AlertingConfig alertingConfig) {
+    private void buildCheckThresholdsIntent(Sheets sheetsApi, final AlertingConfig alertingConfig) {
         int lastXdays = -4; // should be fetched from Sheets (or maybe sheets should trigger this email alltogether)
 
         try {
@@ -381,6 +395,18 @@ public class UploadService extends IntentService {
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
         return new Sheets.Builder(
                 transport, jsonFactory, credential).setApplicationName(getString(R.string.app_name)).build();
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private String createNotificationChannel(NotificationManager notificationManager) {
+        String channelId = "my_service_channelid";
+        String channelName = "Upload Service";
+        NotificationChannel channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH);
+        // omitted the LED color
+        channel.setImportance(NotificationManager.IMPORTANCE_NONE);
+        channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+        notificationManager.createNotificationChannel(channel);
+        return channelId;
     }
 
 }

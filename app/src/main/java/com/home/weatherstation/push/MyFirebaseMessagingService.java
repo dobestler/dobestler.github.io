@@ -5,6 +5,7 @@ import android.util.Log;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.home.weatherstation.ScannerService;
+import com.home.weatherstation.ServiceHelper;
 
 /**
  * Created by dominic on 30.04.17.
@@ -54,7 +55,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
         switch (action) {
             case SCAN_AND_UPLOAD_NOW: {
-                startService(ScannerService.buildScanAndUploadIntent(this));
+                new ServiceHelper().startForegroundService(this, ScannerService.buildScanAndUploadIntent(this));
                 break;
             }
             case PUBLISH_LOGS: {
