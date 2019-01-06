@@ -298,17 +298,6 @@ public class ScannerService extends Service {
         long now = System.currentTimeMillis();
         Storage.storeLastScanTime(getBaseContext(), now);
 
-        // FIXME start remove
-        Date noww = new Date();
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(noww);
-        float temp = cal.get(Calendar.HOUR_OF_DAY) + ((float) (cal.get(Calendar.MINUTE) / 10));
-        int hum = 40 + (cal.get(Calendar.MINUTE) / 10);
-        deviceNr8 = new Sample(noww, "DeviceNo8", 30.0f, 70, 120);
-        deviceNr9 = new Sample(noww, "DeviceNo9", temp + 1.5f, hum + 2, 9);
-        deviceNr10 = new Sample(noww, "DeviceNo10", temp + 2.5f, hum + 4, 10);
-        // FIXME end
-
         if (hasAllSampleData()) {
             Storage.storeLastSuccessfulScanTime(getBaseContext(), now);
             Storage.storeIncompleteScans(getBaseContext(), 0); // reset
@@ -325,7 +314,7 @@ public class ScannerService extends Service {
             }
         }
 
-        //FIXME enable restartBT();
+        restartBT();
     }
 
     private void upload() {

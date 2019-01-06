@@ -59,7 +59,7 @@ public class UploadService extends IntentService {
 
     private static final String TAG = UploadService.class.getSimpleName();
 
-    public static final String[] SCOPES = {SheetsScopes.SPREADSHEETS, "https://www.googleapis.com/auth/fusiontables" }; //FIXME remove fusiontable
+    public static final String[] SCOPES = {SheetsScopes.SPREADSHEETS, "https://www.googleapis.com/auth/fusiontables"}; //FIXME remove fusiontable
 
     private static final String ACTION_UPLOAD = "com.home.weatherstation.action.upload";
     private static final String ACTION_CHECK_THRESHOLDS = "com.home.weatherstation.action.checkthresholds";
@@ -215,15 +215,15 @@ public class UploadService extends IntentService {
     private void insert(Sheets sheetsApi, Date timestamp, Sample device8, Sample device9, Sample device10, Sample outside) throws IOException, JSONException {
         CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
 
-//        try {
-//            //FIXME @deprecated
-//            //FIXME activate for a while
-//            insert(TEMPERATURE_TABLE_ID, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
-//            insert(HUMIDITY_TABLE_ID, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
-//            insert(BATTERY_TABLE_ID, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
-//        } catch (GoogleAuthException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            //FIXME @deprecated
+            //FIXME activate for a while
+            insert(TEMPERATURE_TABLE_ID, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
+            insert(HUMIDITY_TABLE_ID, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
+            insert(BATTERY_TABLE_ID, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
+        } catch (GoogleAuthException e) {
+            e.printStackTrace();
+        }
 
         insert(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
         insert(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
@@ -231,7 +231,7 @@ public class UploadService extends IntentService {
     }
 
     private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, float device8Value, boolean device9HasValue, float device9Value, boolean device10HasValue, float device10Value, boolean outsideHasValue, float outsideValue) throws IOException, JSONException {
-        insert(spreadsheetId, sheetId, sheetsApi, timestamp.toString(), device8HasValue, String.valueOf(device8Value), device9HasValue, String.valueOf(device9Value), device10HasValue, String.valueOf(device10Value), outsideHasValue, String.valueOf(outsideValue));
+        insert(spreadsheetId, sheetId, sheetsApi, timestamp.toString(), device8HasValue, DECIMAL_FORMAT.format(device8Value), device9HasValue, DECIMAL_FORMAT.format(device9Value), device10HasValue, DECIMAL_FORMAT.format(device10Value), outsideHasValue, DECIMAL_FORMAT.format(outsideValue));
     }
 
     private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, int device8Value, boolean device9HasValue, int device9Value, boolean device10HasValue, int device10Value, boolean outsideHasValue, int outsideValue) throws IOException, JSONException {
@@ -250,17 +250,37 @@ public class UploadService extends IntentService {
 
     private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, String device8Value, boolean device9HasValue, String device9Value, boolean device10HasValue, String device10Value, boolean outsideHasValue, String outsideValue) throws IOException, JSONException {
         BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
-        Request request = new Request()
+
+        Request request1 = new Request()
                 .setInsertDimension(new InsertDimensionRequest()
                         .setRange(new DimensionRange()
                                 .setSheetId(sheetId).setDimension("ROWS").setStartIndex(1).setEndIndex(2))
                         .setInheritFromBefore(false));
 
-        batchUpdateSpreadsheetRequest.setRequests(Arrays.asList(request));
-        BatchUpdateSpreadsheetResponse insertResponse = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-        Log.d(TAG, "Insert new row response: " + insertResponse.toPrettyString());
 
-        // Write data
+//        List<CellData> values = new ArrayList<>();
+//        values.add(new CellData().setUserEnteredFormat(new CellFormat().setNumberFormat(NumberFormat)))
+//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(timestamp))));
+//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(device8HasValue ? device8Value : ""))));
+//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(device9HasValue ? device9Value : ""))));
+//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(device10HasValue ? device10Value : ""))));
+//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(outsideHasValue ? outsideValue : ""))));
+//
+//        Request request2 = new Request()
+//                .setUpdateCells(new UpdateCellsRequest()
+//                        .setStart(new GridCoordinate().setSheetId(sheetId).setRowIndex(1).setColumnIndex(0))
+//                        .setFields("*")
+//                        .setRows(Arrays.asList(new RowData().setValues(values)))
+//                );
+//
+//        Log.d("REQ", request2.toPrettyString());
+//        batchUpdateSpreadsheetRequest.setRequests(Arrays.asList(request1, request2));
+        batchUpdateSpreadsheetRequest.setRequests(Arrays.asList(request1));
+
+        BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
+        Log.d(TAG, "Insert new row response: " + response.toPrettyString());
+
+        // Write data TODO test above and remove below
         String range = "Data!A2:E2";
         ValueRange content = new ValueRange();
         List<List<Object>> values = new ArrayList<List<Object>>();
@@ -272,9 +292,8 @@ public class UploadService extends IntentService {
                 (outsideHasValue ? outsideValue : ""));
         values.add(vals);
         content.setValues(values);
-        UpdateValuesResponse response = sheetsApi.spreadsheets().values().update(spreadsheetId, range, content).setValueInputOption("USER_ENTERED").execute();
-        Log.d(TAG, "Write data response: " + response.toPrettyString());
-        // FIXME rollback inserted row
+        UpdateValuesResponse response2 = sheetsApi.spreadsheets().values().update(spreadsheetId, range, content).setValueInputOption("USER_ENTERED").execute();
+        Log.d(TAG, "Write data response: " + response2.toPrettyString());
     }
 
 
