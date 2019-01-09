@@ -1,9 +1,5 @@
 package com.home.weatherstation;
 
-/**
- * Created by thaarres on 19/06/16.
- */
-
 import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.Activity;
@@ -11,6 +7,7 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -67,7 +64,7 @@ public class AuthActivity extends Activity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         Log.d(TAG, "onRequestPermissionsResult");

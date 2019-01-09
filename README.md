@@ -2,11 +2,11 @@
 
 
 To render, go to:<br>
-    http://dobestler.github.io/viewer/dashboard.html<br>
+    http://dobestler.github.io/weatherstation/viewer/dashboard.html<br>
 
 Temperature data stored at:<br>
-    https://fusiontables.google.com/DataSource?docid=1jQ_Jnnw26pWU05sGBNdXbXlvxB-66_W4fuJgsTG7 <br>
+    https://docs.google.com/spreadsheets/d/1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0/ <br>
 Humidity data stored at:<br>
-    https://fusiontables.google.com/DataSource?docid=1sJHjpA2ToIvRbY0eksYhS1hfctq8yg-1H1KPhvaJ <br>
+    https://docs.google.com/spreadsheets/d/1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4/ <br>
 Battery data stored at:<br>
-    https://fusiontables.google.com/DataSource?docid=13Oox5ACRRPJcaL8CigkkpveWUNV3ALDbEwWpmuvq
+    https://docs.google.com/spreadsheets/d/1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk/

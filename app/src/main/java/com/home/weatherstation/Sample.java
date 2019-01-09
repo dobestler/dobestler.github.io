@@ -9,8 +9,8 @@ import java.util.Date;
  * Created by thaarres on 12/06/16.
  */
 public class Sample implements Parcelable {
-    public static final float NOT_SET_FLOAT = -999f;
-    public static final int NOT_SET_INT = -999;
+    static final float NOT_SET_FLOAT = -999f;
+    static final int NOT_SET_INT = -999;
 
     private Date timestamp;
     private String deviceName;

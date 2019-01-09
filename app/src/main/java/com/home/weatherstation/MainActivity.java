@@ -1,5 +1,6 @@
 package com.home.weatherstation;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,6 +23,8 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
+import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
@@ -36,7 +39,6 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
     private TextView lastIncompleteScansAlertTime;
     private TextView incompleteScans;
     private TextView humidityThresholdAlertConfig;
-    private ImageView humidtyThresholdAlertConfigEdit;
     private TextView avgHumidity;
     private TextView thresholdAlertHumidity;
 
@@ -51,15 +53,15 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
         serviceHelper = new ServiceHelper();
 
-        schedulerStatus = (TextView) findViewById(R.id.status);
-        startSchedulerButton = (Button) findViewById(R.id.start_button);
+        schedulerStatus = findViewById(R.id.status);
+        startSchedulerButton = findViewById(R.id.start_button);
         startSchedulerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 start();
             }
         });
-        stopSchedulerButton = (Button) findViewById(R.id.stop_button);
+        stopSchedulerButton = findViewById(R.id.stop_button);
         stopSchedulerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -67,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
         });
 
-        scanAndUploadNowButton = (Button) findViewById(R.id.scan_now_button);
+        scanAndUploadNowButton = findViewById(R.id.scan_now_button);
         scanAndUploadNowButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -75,22 +77,22 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
             }
         });
 
-        lastScanTime = (TextView) findViewById(R.id.last_scan_attempt_time);
-        lastSuccessfulScanTime = (TextView) findViewById(R.id.last_scan_success_time);
-        lastUploadTime = (TextView) findViewById(R.id.last_upload_success_time);
-        incompleteScans = (TextView) findViewById(R.id.incomplete_scans);
-        lastIncompleteScansAlertTime = (TextView) findViewById(R.id.incomplete_scans_alert_time);
+        lastScanTime = findViewById(R.id.last_scan_attempt_time);
+        lastSuccessfulScanTime = findViewById(R.id.last_scan_success_time);
+        lastUploadTime = findViewById(R.id.last_upload_success_time);
+        incompleteScans = findViewById(R.id.incomplete_scans);
+        lastIncompleteScansAlertTime = findViewById(R.id.incomplete_scans_alert_time);
 
         humidityThresholdAlertConfig = findViewById(R.id.hum_threshold_config);
-        humidtyThresholdAlertConfigEdit = findViewById(R.id.edit_hum_threshold_config);
+        ImageView humidtyThresholdAlertConfigEdit = findViewById(R.id.edit_hum_threshold_config);
         humidtyThresholdAlertConfigEdit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 showEditDialog(MainActivity.this, Storage.readAlertingConfig(MainActivity.this));
             }
         });
-        avgHumidity = (TextView) findViewById(R.id.avg_hum);
-        thresholdAlertHumidity = (TextView) findViewById(R.id.hum_threshold_alert);
+        avgHumidity = findViewById(R.id.avg_hum);
+        thresholdAlertHumidity = findViewById(R.id.hum_threshold_alert);
 
         String version = "??";
         try {
@@ -102,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
         enableButtons(false);
 
-        getSupportActionBar().setDisplayShowHomeEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setDisplayShowHomeEnabled(true);
         getSupportActionBar().setIcon(R.mipmap.ic_launcher);
 
         startActivityForResult(new Intent(this, AuthActivity.class), 2001);
@@ -165,10 +167,11 @@ public class MainActivity extends AppCompatActivity implements SharedPreferences
 
     private void updateStatusScheduler() {
         new Handler().postDelayed(new Runnable() {
+            @SuppressLint("SetTextI18n")
             @Override
             public void run() {
                 long nextTriggerTime = ScannerService.getNextScheduled(MainActivity.this);
-                DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+                DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
                 if (nextTriggerTime > -1) {
                     schedulerStatus.setText("Next scan at:\n" + df.format(new Date(nextTriggerTime)));
                     startSchedulerButton.setEnabled(false);

@@ -16,6 +16,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
@@ -30,6 +31,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 import bluemaestro.utility.sdk.ble.ScanRecordParser;
 import bluemaestro.utility.sdk.devices.BMTempHumi;
@@ -278,7 +281,7 @@ public class ScannerService extends Service {
             if (DEVICE_NO08_MAC_ADDRESS.equals(deviceAddress)) {
                 deviceNr8 = parseNewDevice(result.getScanRecord(), now, DEVICE_NO8_TEMP_SHIFT_DEGREES, DEVICE_NO8_RELHUM_CALIBRATION);
             } else if (DEVICE_NO09_MAC_ADDRESS.equals(deviceAddress)) {
-                deviceNr9 = parse(result.getScanRecord(), now, DEVICE_NO9_TEMP_SHIFT_DEGREES, DEVICE_NO9_RELHUM_CALIBRATION);
+                deviceNr9 = parse(result.getScanRecord(), now);
             } else if (DEVICE_NO10_MAC_ADDRESS.equals(deviceAddress)) {
                 deviceNr10 = parseNewDevice(result.getScanRecord(), now, DEVICE_N10_TEMP_SHIFT_DEGREES, DEVICE_N10_RELHUM_CALIBRATION);
             }
@@ -342,7 +345,7 @@ public class ScannerService extends Service {
                 .withMailto(BuildConfig.ALERT_EMAIL_TO)
                 .withType(BackgroundMail.TYPE_PLAIN)
                 .withSubject(String.format("%s Alert: Incomplete scans", getString(R.string.app_name)))
-                .withBody(String.format("%d incomplete scans in a row!", numberOfIncompleteScans))
+                .withBody(String.format(Locale.getDefault(), "%d incomplete scans in a row!", numberOfIncompleteScans))
                 .withProcessVisibility(false)
                 .withOnSuccessCallback(new BackgroundMail.OnSuccessCallback() {
                     @Override
@@ -381,8 +384,7 @@ public class ScannerService extends Service {
 
     // Old (bigger) devices
     @Nullable
-    private Sample parse(ScanRecord record, Date date, float tempCalibrationShift,
-                         double relhumCalibrationMultiplier) {
+    private Sample parse(ScanRecord record, Date date) {
 
         byte[] manufacturerSpecData = record.getManufacturerSpecificData().valueAt(0);
 
@@ -400,11 +402,14 @@ public class ScannerService extends Service {
         byte humidity = bytes.get();          // humidity in %
         int battery = Sample.NOT_SET_INT;     // old device does not provide battery level
 
-        return new Sample(date, record.getDeviceName(), ((float) tempCurrent) / 10 + tempCalibrationShift, (int) Math.round(((int) humidity) * relhumCalibrationMultiplier), battery);
+        return new Sample(date, record.getDeviceName(),
+                ((float) tempCurrent) / 10 + DEVICE_NO9_TEMP_SHIFT_DEGREES,
+                (int) Math.round(((int) humidity) * DEVICE_NO9_RELHUM_CALIBRATION),
+                battery);
     }
 
     // New (smaller and colored) devices. See app/external/Temperature-Humidity-Data-Logger-Commands-API.pdf for the protocol
-    @Nullable
+    @NonNull
     private Sample parseNewDevice(ScanRecord record, Date date, float tempCalibrationShift,
                                   double relhumCalibrationMultiplier) {
         ScanRecordParser parser = new ScanRecordParser(record.getBytes());
@@ -413,15 +418,15 @@ public class ScannerService extends Service {
     }
 
     public static long getNextScheduled(final Context context) {
-        AlarmManager.AlarmClockInfo nextAlarmClock = ((AlarmManager) context.getSystemService(Context.ALARM_SERVICE)).getNextAlarmClock();
+        AlarmManager.AlarmClockInfo nextAlarmClock = ((AlarmManager) Objects.requireNonNull(context.getSystemService(Context.ALARM_SERVICE))).getNextAlarmClock();
         return nextAlarmClock != null ? nextAlarmClock.getTriggerTime() : -1;
     }
 
 
     private String getNotificationText() {
-        String text = "";
         long nextTriggerTime = ScannerService.getNextScheduled(this);
-        DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm");
+        DateFormat df = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+        String text;
         if (nextTriggerTime > -1) {
             text = "Next scan: " + df.format(new Date(nextTriggerTime));
         } else {

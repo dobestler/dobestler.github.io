@@ -6,7 +6,6 @@ package com.home.weatherstation;
 
 import android.app.Activity;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
@@ -38,20 +37,13 @@ public class AndroidPermissions {
      * @return true if all the required permissions are granted, otherwise false
      */
     public boolean checkPermissions() {
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.LOLLIPOP_MR1)
-            return true;
-
         for (String permission : mRequiredPermissions) {
             if (ContextCompat.checkSelfPermission(mContext, permission) != PackageManager.PERMISSION_GRANTED) {
                 mPermissionsToRequest.add(permission);
             }
         }
 
-        if (mPermissionsToRequest.isEmpty()) {
-            return true;
-        }
-
-        return false;
+        return mPermissionsToRequest.isEmpty();
     }
 
     /**

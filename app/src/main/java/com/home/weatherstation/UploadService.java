@@ -1,17 +1,12 @@
 package com.home.weatherstation;
 
 import android.app.IntentService;
-import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
-import android.support.annotation.RequiresApi;
 import android.util.Log;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
-import com.google.android.gms.auth.GoogleAuthException;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.http.HttpTransport;
@@ -28,7 +23,6 @@ import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -36,7 +30,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
@@ -45,9 +38,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.TimeZone;
-
-import javax.net.ssl.HttpsURLConnection;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -59,7 +51,7 @@ public class UploadService extends IntentService {
 
     private static final String TAG = UploadService.class.getSimpleName();
 
-    public static final String[] SCOPES = {SheetsScopes.SPREADSHEETS, "https://www.googleapis.com/auth/fusiontables"}; //FIXME remove fusiontable
+    public static final String[] SCOPES = {SheetsScopes.SPREADSHEETS};
 
     private static final String ACTION_UPLOAD = "com.home.weatherstation.action.upload";
     private static final String ACTION_CHECK_THRESHOLDS = "com.home.weatherstation.action.checkthresholds";
@@ -70,22 +62,16 @@ public class UploadService extends IntentService {
     private static final String EXTRA_SAMPLE_DEVICE10 = "com.home.weatherstation.extra.sampledevice10";
     private static final String EXTRA_ALERTING_CONFIG = "com.home.weatherstation.extra.config";
 
-    private static final String TEMPERATURE_TABLE_ID = "1jQ_Jnnw26pWU05sGBNdXbXlvxB-66_W4fuJgsTG7";
     private static final String TEMPERATURE_SPREADSHEET_ID = "1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0";
-    private static final int TEMPERATURE_DATA_SHEET_ID = 1714261182;
-    private static final String HUMIDITY_TABLE_ID = "1sJHjpA2ToIvRbY0eksYhS1hfctq8yg-1H1KPhvaJ";
     private static final String HUMIDITY_SPREADSHEET_ID = "1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4";
-    private static final int HUMIDITY_DATA_SHEET_ID = 1714261182;
-    private static final String BATTERY_TABLE_ID = "13Oox5ACRRPJcaL8CigkkpveWUNV3ALDbEwWpmuvq";
     private static final String BATTERY_SPREADSHEET_ID = "1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk";
+    private static final int TEMPERATURE_DATA_SHEET_ID = 1714261182;
+    private static final int HUMIDITY_DATA_SHEET_ID = 1714261182;
     private static final int BATTERY_DATA_SHEET_ID = 1714261182;
-    private static final String API_KEY_GOOGLE = "AIzaSyC6bt0RnAVIDwdj3eiSJBmrEPqTmQGDNkM";
 
     private static final String SMN_STATION_URL = "https://opendata.netcetera.com/smn/smn/REH";
 
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
-
-    private ServiceHelper serviceHelper;
 
     public UploadService() {
         super("UploadService");
@@ -135,7 +121,7 @@ public class UploadService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
 
-            serviceHelper = new ServiceHelper();
+            ServiceHelper serviceHelper = new ServiceHelper();
 
             startForeground(ID_SERVICE, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
 
@@ -164,7 +150,7 @@ public class UploadService extends IntentService {
                 insert(sheetsApi, timestamp, deviceNo8, deviceNo9, deviceNo10, sampleOutside);
                 Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
                 return;
-            } catch (IOException | JSONException e) {
+            } catch (IOException e) {
                 Log.e(TAG, "Could not insert data!", e);
                 try {
                     Thread.sleep(500);
@@ -191,7 +177,7 @@ public class UploadService extends IntentService {
             Date d = parseDate(currentObservation.getString("dateTime"));
             float tempCurrent = Float.valueOf(currentObservation.getString("temperature"));
             int relHumid = Integer.valueOf(currentObservation.getString("humidity"));
-            int pressure = currentObservation.getInt("qfePressure");
+            //int pressure = currentObservation.getInt("qfePressure");
 
             return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
         } catch (Exception e) {
@@ -202,7 +188,7 @@ public class UploadService extends IntentService {
     }
 
     private static Date parseDate(String dateString) {
-        DateFormat utcFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        DateFormat utcFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault());
         utcFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         try {
             return utcFormat.parse(dateString);
@@ -212,43 +198,14 @@ public class UploadService extends IntentService {
         }
     }
 
-    private void insert(Sheets sheetsApi, Date timestamp, Sample device8, Sample device9, Sample device10, Sample outside) throws IOException, JSONException {
+    private void insert(Sheets sheetsApi, Date timestamp, Sample device8, Sample device9, Sample device10, Sample outside) throws IOException {
         CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
-
-        try {
-            //FIXME @deprecated
-            //FIXME activate for a while
-            insert(TEMPERATURE_TABLE_ID, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
-            insert(HUMIDITY_TABLE_ID, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
-            insert(BATTERY_TABLE_ID, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
-        } catch (GoogleAuthException e) {
-            e.printStackTrace();
-        }
-
-        insert(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasTempCurrent(), device8.getTemperature(), device9.hasTempCurrent(), device9.getTemperature(), device10.hasTempCurrent(), device10.getTemperature(), outside.hasTempCurrent(), outside.getTemperature());
-        insert(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasRelativeHumidity(), device8.getRelativeHumidity(), device9.hasRelativeHumidity(), device9.getRelativeHumidity(), device10.hasRelativeHumidity(), device10.getRelativeHumidity(), outside.hasRelativeHumidity(), outside.getRelativeHumidity());
-        insert(BATTERY_SPREADSHEET_ID, BATTERY_DATA_SHEET_ID, sheetsApi, timestampValue, device8.hasBatteryLevelCurrent(), device8.getBatteryLevel(), device9.hasBatteryLevelCurrent(), device9.getBatteryLevel(), device10.hasBatteryLevelCurrent(), device10.getBatteryLevel(), outside.hasBatteryLevelCurrent(), outside.getBatteryLevel());
+        insert(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, sheetsApi, timestampValue.toString(), device8.hasTempCurrent(), DECIMAL_FORMAT.format(device8.getTemperature()), device9.hasTempCurrent(), DECIMAL_FORMAT.format(device9.getTemperature()), device10.hasTempCurrent(), DECIMAL_FORMAT.format(device10.getTemperature()), outside.hasTempCurrent(), DECIMAL_FORMAT.format(outside.getTemperature()));
+        insert(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, sheetsApi, timestampValue.toString(), device8.hasRelativeHumidity(), String.valueOf(device8.getRelativeHumidity()), device9.hasRelativeHumidity(), String.valueOf(device9.getRelativeHumidity()), device10.hasRelativeHumidity(), String.valueOf(device10.getRelativeHumidity()), outside.hasRelativeHumidity(), String.valueOf(outside.getRelativeHumidity()));
+        insert(BATTERY_SPREADSHEET_ID, BATTERY_DATA_SHEET_ID, sheetsApi, timestampValue.toString(), device8.hasBatteryLevelCurrent(), String.valueOf(device8.getBatteryLevel()), device9.hasBatteryLevelCurrent(), String.valueOf(device9.getBatteryLevel()), device10.hasBatteryLevelCurrent(), String.valueOf(device10.getBatteryLevel()), outside.hasBatteryLevelCurrent(), String.valueOf(outside.getBatteryLevel()));
     }
 
-    private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, float device8Value, boolean device9HasValue, float device9Value, boolean device10HasValue, float device10Value, boolean outsideHasValue, float outsideValue) throws IOException, JSONException {
-        insert(spreadsheetId, sheetId, sheetsApi, timestamp.toString(), device8HasValue, DECIMAL_FORMAT.format(device8Value), device9HasValue, DECIMAL_FORMAT.format(device9Value), device10HasValue, DECIMAL_FORMAT.format(device10Value), outsideHasValue, DECIMAL_FORMAT.format(outsideValue));
-    }
-
-    private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, int device8Value, boolean device9HasValue, int device9Value, boolean device10HasValue, int device10Value, boolean outsideHasValue, int outsideValue) throws IOException, JSONException {
-        insert(spreadsheetId, sheetId, sheetsApi, timestamp.toString(), device8HasValue, String.valueOf(device8Value), device9HasValue, String.valueOf(device9Value), device10HasValue, String.valueOf(device10Value), outsideHasValue, String.valueOf(outsideValue));
-    }
-
-    @Deprecated
-    private void insert(String table, CharSequence timestamp, boolean device8HasValue, float device8Value, boolean device9HasValue, float device9Value, boolean device10HasValue, float device10Value, boolean outsideHasValue, float outsideValue) throws IOException, GoogleAuthException {
-        insert(table, timestamp.toString(), device8HasValue, DECIMAL_FORMAT.format(device8Value), device9HasValue, DECIMAL_FORMAT.format(device9Value), device10HasValue, DECIMAL_FORMAT.format(device10Value), outsideHasValue, DECIMAL_FORMAT.format(outsideValue));
-    }
-
-    @Deprecated
-    private void insert(String table, CharSequence timestamp, boolean device8HasValue, int device8Value, boolean device9HasValue, int device9Value, boolean device10HasValue, int device10Value, boolean outsideHasValue, int outsideValue) throws IOException, GoogleAuthException {
-        insert(table, timestamp.toString(), device8HasValue, String.valueOf(device8Value), device9HasValue, String.valueOf(device9Value), device10HasValue, String.valueOf(device10Value), outsideHasValue, String.valueOf(outsideValue));
-    }
-
-    private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, String device8Value, boolean device9HasValue, String device9Value, boolean device10HasValue, String device10Value, boolean outsideHasValue, String outsideValue) throws IOException, JSONException {
+    private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, String device8Value, boolean device9HasValue, String device9Value, boolean device10HasValue, String device10Value, boolean outsideHasValue, String outsideValue) throws IOException {
         BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
 
         Request request1 = new Request()
@@ -262,9 +219,6 @@ public class UploadService extends IntentService {
 //        values.add(new CellData().setUserEnteredFormat(new CellFormat().setNumberFormat(NumberFormat)))
 //        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(timestamp))));
 //        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(device8HasValue ? device8Value : ""))));
-//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(device9HasValue ? device9Value : ""))));
-//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(device10HasValue ? device10Value : ""))));
-//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(outsideHasValue ? outsideValue : ""))));
 //
 //        Request request2 = new Request()
 //                .setUpdateCells(new UpdateCellsRequest()
@@ -283,7 +237,7 @@ public class UploadService extends IntentService {
         // Write data TODO test above and remove below
         String range = "Data!A2:E2";
         ValueRange content = new ValueRange();
-        List<List<Object>> values = new ArrayList<List<Object>>();
+        List<List<Object>> values = new ArrayList<>();
         List<Object> vals = Arrays.asList(
                 (Object) String.valueOf(timestamp),
                 (device8HasValue ? device8Value : ""),
@@ -296,56 +250,6 @@ public class UploadService extends IntentService {
         Log.d(TAG, "Write data response: " + response2.toPrettyString());
     }
 
-
-    @Deprecated
-    private void insert(String table, CharSequence timestamp, boolean device8HasValue, String
-            device8Value, boolean device9HasValue, String device9Value, boolean device10HasValue, String
-                                device10Value, boolean outsideHasValue, String outsideValue) throws IOException, GoogleAuthException {
-        // build insert statements
-        String rawInsertStatement =
-                "INSERT INTO %s (" +
-                        "Date" +
-                        (device8HasValue ? ",DeviceNo8" : "") +
-                        (device9HasValue ? ",DeviceNo9" : "") +
-                        (device10HasValue ? ",DeviceNo10" : "") +
-                        (outsideHasValue ? ",Outside" : "")
-                        + ") VALUES (" +
-                        "'%s'" +
-                        (device8HasValue ? ", " + device8Value : "") +
-                        (device9HasValue ? ", " + device9Value : "") +
-                        (device10HasValue ? ", " + device10Value : "") +
-                        (outsideHasValue ? ", " + outsideValue : "")
-                        + ")";
-        String insertStatement = String.format(rawInsertStatement, table, timestamp);
-
-        Log.d(TAG, "Insert statement : " + insertStatement);
-
-        // Encode the query
-        String query = URLEncoder.encode(insertStatement);
-        URL url = new URL("https://www.googleapis.com/fusiontables/v2/query?sql=" + query + "&key=" + API_KEY_GOOGLE);
-        HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
-
-        GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
-                getApplicationContext(), Arrays.asList(SCOPES))
-                .setBackOff(new ExponentialBackOff());
-        credential.setSelectedAccountName(new AuthPreferences(getApplicationContext()).getUser());
-        conn.setRequestProperty("Authorization", "Bearer " + credential.getToken());
-
-        Log.i(TAG, "Response Code: " + conn.getResponseCode());
-        Log.i(TAG, "Response Message: " + conn.getResponseMessage());
-
-        // read the response
-        BufferedInputStream bis;
-        if (200 <= conn.getResponseCode() && conn.getResponseCode() <= 299) {
-            bis = new BufferedInputStream(conn.getInputStream());
-        } else {
-            bis = new BufferedInputStream(conn.getErrorStream());
-        }
-        String response = org.apache.commons.io.IOUtils.toString(bis, "UTF-8");
-        Log.v(TAG, response);
-    }
-
     private void buildCheckThresholdsIntent(Sheets sheetsApi, final AlertingConfig alertingConfig) {
         int lastXdays = -4; // should be fetched from Sheets (or maybe sheets should trigger this email alltogether)
 
@@ -355,29 +259,29 @@ public class UploadService extends IntentService {
             Storage.storeAverageHumidity(this, averageHum);
             if (averageHum < alertingConfig.getLowerThresholdHumidity() || averageHum > alertingConfig.getUpperThresholdHumidity()) {
                 Storage.storeThresholdExceededHumidity(this, System.currentTimeMillis());
-                sendThresholdExceededAlert("Humidity", averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());
+                sendThresholdExceededAlert(averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());
             } else {
                 if (Storage.readThresholdExceededHumidity(this) > -1) {
-                    sendThresholdRecoveredAlert("Humidity", averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());
+                    sendThresholdRecoveredAlert(averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());
                 }
                 Storage.removeThresholdExceededHumidity(this);
             }
-        } catch (IOException | JSONException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private void sendThresholdRecoveredAlert(String tableName, double recoveringValue,
+    private void sendThresholdRecoveredAlert(double recoveringValue,
                                              int lastXdays, float lowerThreshold, float upperThreshold) {
         Log.i(TAG, "Sending Threshold Recovered alert email...");
-        String subject = String.format("%s Alert: %s threshold recovered", getString(R.string.app_name), tableName);
+        String subject = String.format("%s Alert: %s threshold recovered", getString(R.string.app_name), "Humidity");
         sendAlertEmail(recoveringValue, lastXdays, lowerThreshold, upperThreshold, subject);
     }
 
-    private void sendThresholdExceededAlert(String tableName, double exceedingValue,
+    private void sendThresholdExceededAlert(double exceedingValue,
                                             int lastXdays, float lowerThreshold, float upperThreshold) {
         Log.i(TAG, "Sending Threshold Exceeded alert email...");
-        String subject = String.format("%s Alert: %s threshold exceeded", getString(R.string.app_name), tableName);
+        String subject = String.format("%s Alert: %s threshold exceeded", getString(R.string.app_name), "Humidity");
         sendAlertEmail(exceedingValue, lastXdays, lowerThreshold, upperThreshold, subject);
     }
 
@@ -389,16 +293,15 @@ public class UploadService extends IntentService {
                 .withMailto(BuildConfig.ALERT_EMAIL_TO)
                 .withType(BackgroundMail.TYPE_PLAIN)
                 .withSubject(subject)
-                .withBody(String.format("Measured avg. for the last %d days = %s \n" +
+                .withBody(String.format(Locale.getDefault(), "Measured avg. for the last %d days = %s \n" +
                         "Lower threshold = %s\n" +
                         "Upper threshold = %s", lastXdays, new DecimalFormat("#.##").format(exceedingValue), new DecimalFormat("#.##").format(lowerThreshold), new DecimalFormat("#.##").format(upperThreshold)))
                 .withProcessVisibility(false)
                 .send();
     }
 
-    public float queryAvg(String spreadsheetId, Sheets sheetsApi) throws IOException, JSONException {
+    public float queryAvg(String spreadsheetId, Sheets sheetsApi) throws IOException {
         String range = "Average!F2:F2";
-        List<String> results = new ArrayList<String>();
         ValueRange response = sheetsApi.spreadsheets().values().get(spreadsheetId, range).execute();
         Log.d(TAG, "Read average response: " + response.toPrettyString());
         return Float.parseFloat((String) response.getValues().get(0).get(0));
@@ -414,18 +317,6 @@ public class UploadService extends IntentService {
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
         return new Sheets.Builder(
                 transport, jsonFactory, credential).setApplicationName(getString(R.string.app_name)).build();
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private String createNotificationChannel(NotificationManager notificationManager) {
-        String channelId = "my_service_channelid";
-        String channelName = "Upload Service";
-        NotificationChannel channel = new NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_HIGH);
-        // omitted the LED color
-        channel.setImportance(NotificationManager.IMPORTANCE_NONE);
-        channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
-        notificationManager.createNotificationChannel(channel);
-        return channelId;
     }
 
 }

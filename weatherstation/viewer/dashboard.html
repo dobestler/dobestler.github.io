@@ -51,12 +51,6 @@
 
         $(document).ready(function() {
             handleClientLoad();
-
-            $('#btn-chart').on('click', function() {
-                var datatype = document.getElementById('datatype').value;
-                showChart(datatype, start.format('YYYY/MM/DD+HH:mm:ss'), end.format('YYYY/MM/DD+HH:mm:ss'));
-            })
-
         });
 
         function initWeatherstation() {
@@ -230,33 +224,6 @@
             return dataSampled;
         }
 
-
-        //FIXME still needed? chart seems to be able to display larger ranges but is very slow?
-        function showChart(datatype, start, end) {
-            var url = "https://fusiontables.googleusercontent.com/embedviz?containerId=googft-gviz-canvas&viz=GVIZ&t=LINE_AGGREGATE&isXyPlot=true&bsize=0.0&" +
-                "q={ $QCOLS }&qrs=+where+col3+%3E%3D+&qre=+and+col3+%3C%3D+&qe=+order+by+col3+asc&uiversion=2&" +
-                "rstart={ $START }&rend={ $END }&" +
-                "gco_forceIFrame=true&gco_hasLabelsColumn=true&width=500&height=300";
-
-            var cols;
-
-            switch (datatype) {
-                case 'Humidity':
-                    cols = "select+col3,+col7,+col1,+col9,+col8+from+1sJHjpA2ToIvRbY0eksYhS1hfctq8yg-1H1KPhvaJ";
-                    break;
-                case 'Pressure':
-                case 'Temperature':
-                    cols = "select+col3,+col7,+col1,+col9,+col8+from+1jQ_Jnnw26pWU05sGBNdXbXlvxB-66_W4fuJgsTG7";
-                    break;
-                case 'Battery':
-                    cols = "select+col3,+col7,+col1,+col9+from+13Oox5ACRRPJcaL8CigkkpveWUNV3ALDbEwWpmuvq";
-                    break;
-            }
-
-            var url = url.replace("{ $QCOLS }", cols).replace("{ $START }", start).replace("{ $END }", end);
-            window.open(url, '_blank');
-        }
-
         function getUnitFor(dataType) {
             switch (dataType) {
                 case 'Humidity':
@@ -378,6 +345,8 @@
 
 
 
+
+
     </script>
 
 </head>
@@ -485,13 +454,6 @@
                 </div>
             </div>
             <br/>
-            <div class="row">
-                <div class="col-xs-12 text-right">
-                    <button id="btn-chart" name="chart" type="button" class="btn btn-default">
-                        Detailed chart
-                    </button>
-                </div>
-            </div>
         </div>
     </div>
     <div class="panel panel-success">
@@ -566,6 +528,8 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
+
+
 
 
 
