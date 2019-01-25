@@ -40,6 +40,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -80,7 +81,7 @@ public class UploadService extends IntentService {
     /**
      * Sends an alert if the average value for the last 7 days is below or above the thresholds.
      */
-    public static Intent buildCheckThresholdsIntent(final Context context, final AlertingConfig config) {
+    public static Intent checkThresholds(final Context context, final AlertingConfig config) {
         Intent intent = new Intent(context, UploadService.class);
         intent.setAction(ACTION_CHECK_THRESHOLDS);
         intent.putExtra(EXTRA_ALERTING_CONFIG, config);
@@ -135,7 +136,7 @@ public class UploadService extends IntentService {
                 Log.i(TAG, "" + sampleOutside);
                 upload(getSheetsApi(), timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
-                buildCheckThresholdsIntent(getSheetsApi(), (AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
+                checkThresholds(getSheetsApi(), (AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
             } else {
                 Log.w(TAG, "Unknown action: " + action);
             }
@@ -250,16 +251,22 @@ public class UploadService extends IntentService {
         Log.d(TAG, "Write data response: " + response2.toPrettyString());
     }
 
-    private void buildCheckThresholdsIntent(Sheets sheetsApi, final AlertingConfig alertingConfig) {
+    private void checkThresholds(Sheets sheetsApi, final AlertingConfig alertingConfig) {
         int lastXdays = -4; // should be fetched from Sheets (or maybe sheets should trigger this email alltogether)
 
         try {
             float averageHum = queryAvg(HUMIDITY_SPREADSHEET_ID, sheetsApi);
 
+            long thresholdExceededHumidityFromStorage = Storage.readThresholdExceededHumidity(this);
+
             Storage.storeAverageHumidity(this, averageHum);
             if (averageHum < alertingConfig.getLowerThresholdHumidity() || averageHum > alertingConfig.getUpperThresholdHumidity()) {
-                Storage.storeThresholdExceededHumidity(this, System.currentTimeMillis());
-                sendThresholdExceededAlert(averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());
+                // send alert only every 8 hours
+                long now = System.currentTimeMillis();
+                if (thresholdExceededHumidityFromStorage == -1 || (now - thresholdExceededHumidityFromStorage > TimeUnit.HOURS.toMillis(8))) {
+                    Storage.storeThresholdExceededHumidity(this, now);
+                    sendThresholdExceededAlert(averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());
+                }
             } else {
                 if (Storage.readThresholdExceededHumidity(this) > -1) {
                     sendThresholdRecoveredAlert(averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());

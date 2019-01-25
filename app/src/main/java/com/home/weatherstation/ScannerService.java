@@ -305,7 +305,7 @@ public class ScannerService extends Service {
             Storage.storeLastSuccessfulScanTime(getBaseContext(), now);
             Storage.storeIncompleteScans(getBaseContext(), 0); // reset
             upload();
-            Intent intent = UploadService.buildCheckThresholdsIntent(this, Storage.readAlertingConfig(this)); // could be done only once a day instead of for every scan cycle
+            Intent intent = UploadService.checkThresholds(this, Storage.readAlertingConfig(this)); // could be done only once a day instead of for every scan cycle
             serviceHelper.startForegroundService(this, intent);
         } else {
             handleIncompleteScan();
