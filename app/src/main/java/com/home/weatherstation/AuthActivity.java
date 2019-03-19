@@ -12,6 +12,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.GoogleAuthException;
+import com.google.android.gms.auth.UserRecoverableAuthException;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
@@ -189,7 +190,16 @@ public class AuthActivity extends Activity {
                 String oauthToken = credential.getToken();
                 Log.d(TAG, "Acquired token " + oauthToken);
                 return oauthToken;
-            } catch (GoogleAuthException | IOException e) {
+            } catch (UserRecoverableAuthException e) {
+                // Requesting an authorization code will always throw
+                // UserRecoverableAuthException on the first call to GoogleAuthUtil.getToken
+                // because the user must consent to offline access to their data.  After
+                // consent is granted control is returned to your activity in onActivityResult
+                // and the second call to GoogleAuthUtil.getToken will succeed.
+                startActivityForResult(e.getIntent(), REQUEST_ACCOUNT_PICKER);
+                return null;
+            } catch (GoogleAuthException |
+                    IOException e) {
                 e.printStackTrace();
                 return null;
             }
