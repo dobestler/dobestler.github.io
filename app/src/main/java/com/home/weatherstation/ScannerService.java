@@ -6,7 +6,6 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
 import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanRecord;
@@ -69,7 +68,6 @@ public class ScannerService extends Service {
     private static final long MAX_INOMPLETE_SAMPLING_ATTEMPTS = 3;
 
     private BluetoothAdapter mBluetoothAdapter;
-    private BluetoothLeScanner mLEScanner;
     private ScanSettings settings;
     private final List<ScanFilter> scanFilters = new ArrayList<>();
 
@@ -137,7 +135,6 @@ public class ScannerService extends Service {
 
         mBluetoothAdapter = ((BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
 
-        mLEScanner = mBluetoothAdapter.getBluetoothLeScanner();
         settings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 //.setReportDelay(500)
@@ -227,7 +224,7 @@ public class ScannerService extends Service {
     }
 
     private void scanAndUpload() {
-        scanLeDevice();
+        ensureBTAndStartScan();
     }
 
     private void scanLeDevice() {
@@ -235,7 +232,7 @@ public class ScannerService extends Service {
         mHandler.postDelayed(stopScanAndProcessRunnable, SCAN_PERIOD);
 
         resetCachedSampleData();
-        mLEScanner.startScan(scanFilters, settings, mScanCallback);
+        mBluetoothAdapter.getBluetoothLeScanner().startScan(scanFilters, settings, mScanCallback);
     }
 
     private void resetCachedSampleData() {
@@ -254,8 +251,8 @@ public class ScannerService extends Service {
 
 
     private void stopScanAndProcessResults() {
-        mLEScanner.flushPendingScanResults(mScanCallback);
-        mLEScanner.stopScan(mScanCallback);
+        mBluetoothAdapter.getBluetoothLeScanner().flushPendingScanResults(mScanCallback);
+        mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
         Log.i(TAG, "Scanner stopped");
         process();
     }
@@ -360,6 +357,25 @@ public class ScannerService extends Service {
                     }
                 })
                 .send();
+    }
+
+
+    private void ensureBTAndStartScan() {
+        if (mBluetoothAdapter.isEnabled()) {
+            Log.i(TAG, "ensureBTAndStartScan: BT already ON ...");
+            scanLeDevice();
+        } else {
+            Log.i(TAG, "ensureBTAndStartScan: BT is OFF. Restarting BT ...");
+            restartBT(); // wait 10s after to make sure its restarted (dirty hack!)
+            Log.i(TAG, "Starting scan in 10s ...");
+            new Handler(getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scanLeDevice();
+                }
+            }, 10000);
+        }
+
     }
 
     private void restartBT() {
