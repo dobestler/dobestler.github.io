@@ -314,7 +314,7 @@ public class ScannerService extends Service {
             }
         }
 
-        restartBT();
+        //restartBT();
     }
 
     private void upload() {
