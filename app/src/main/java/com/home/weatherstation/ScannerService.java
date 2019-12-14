@@ -45,9 +45,9 @@ public class ScannerService extends Service {
 
     private static final String TAG = ScannerService.class.getSimpleName();
 
-    private static final String DEVICE_NO08_MAC_ADDRESS = "F0:E7:FA:CE:1F:D8";
-    private static final String DEVICE_NO09_MAC_ADDRESS = "FA:67:91:00:D7:B2";
-    private static final String DEVICE_NO10_MAC_ADDRESS = "DC:6C:14:1C:96:97";
+    private static final String DEVICE_NO08_MAC_ADDRESS = "F0:E7:FA:CE:1F:D8"; // Bedroom
+    private static final String DEVICE_NO09_MAC_ADDRESS = "FA:67:91:00:D7:B2"; // Living room
+    private static final String DEVICE_NO10_MAC_ADDRESS = "DC:6C:14:1C:96:97"; // Kids' room
 
     // Temperature calibration shift
     private static final float DEVICE_NO8_TEMP_SHIFT_DEGREES = -0.1f; // new device
