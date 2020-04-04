@@ -168,7 +168,7 @@ public class UploadService extends IntentService {
 
     private static Sample fetchCurrentConditionsOutsideOpenDataDirectly() {
         try {
-            DataLoader dataLoader = new DataLoader("");//OPEN_DATA_URL);
+            DataLoader dataLoader = new DataLoader(OPEN_DATA_URL);
             SmnRecord currentObservation = dataLoader.loadSmnData().getRecordFor("REH");
             Date d = parseDate(currentObservation.getDateTime());
             float tempCurrent = Float.valueOf(currentObservation.getTemperature());
