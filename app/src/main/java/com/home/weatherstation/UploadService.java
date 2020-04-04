@@ -22,6 +22,8 @@ import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import com.home.weatherstation.smn.DataLoader;
+import com.home.weatherstation.smn.SmnRecord;
 
 import org.json.JSONObject;
 
@@ -71,7 +73,7 @@ public class UploadService extends IntentService {
     private static final int BATTERY_DATA_SHEET_ID = 1714261182;
 
     private static final String SMN_STATION_URL = "https://opendata.netcetera.com/smn/smn/REH";
-
+    private static final String OPEN_DATA_URL = "https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA80.csv";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
 
     public UploadService() {
@@ -132,7 +134,7 @@ public class UploadService extends IntentService {
                 final Sample sampleDevice8 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE8);
                 final Sample sampleDevice9 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE9);
                 final Sample sampleDevice10 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE10);
-                final Sample sampleOutside = fetchCurrentConditionsOutsideSMN();
+                final Sample sampleOutside = fetchCurrentConditionsOutsideOpenDataDirectly();
                 Log.i(TAG, "" + sampleOutside);
                 upload(getSheetsApi(), timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
@@ -159,6 +161,22 @@ public class UploadService extends IntentService {
                     e1.printStackTrace();
                 }
             }
+        }
+    }
+
+    private static Sample fetchCurrentConditionsOutsideOpenDataDirectly() {
+        try {
+            DataLoader dataLoader = new DataLoader(OPEN_DATA_URL);
+            SmnRecord currentObservation = dataLoader.loadSmnData().getRecordFor("REH");
+            Date d = parseDate(currentObservation.getDateTime());
+            float tempCurrent = Float.valueOf(currentObservation.getTemperature());
+            int relHumid = Integer.valueOf(currentObservation.getHumidity());
+            //int pressure = currentObservation.getQfePressure());
+
+            return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return getSample("Outside", null);
         }
     }
 
@@ -199,14 +217,18 @@ public class UploadService extends IntentService {
         }
     }
 
-    private void insert(Sheets sheetsApi, Date timestamp, Sample device8, Sample device9, Sample device10, Sample outside) throws IOException {
+    private void insert(Sheets sheetsApi, Date timestamp, Sample device8, Sample
+            device9, Sample device10, Sample outside) throws IOException {
         CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
         insert(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, sheetsApi, timestampValue.toString(), device8.hasTempCurrent(), DECIMAL_FORMAT.format(device8.getTemperature()), device9.hasTempCurrent(), DECIMAL_FORMAT.format(device9.getTemperature()), device10.hasTempCurrent(), DECIMAL_FORMAT.format(device10.getTemperature()), outside.hasTempCurrent(), DECIMAL_FORMAT.format(outside.getTemperature()));
         insert(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, sheetsApi, timestampValue.toString(), device8.hasRelativeHumidity(), String.valueOf(device8.getRelativeHumidity()), device9.hasRelativeHumidity(), String.valueOf(device9.getRelativeHumidity()), device10.hasRelativeHumidity(), String.valueOf(device10.getRelativeHumidity()), outside.hasRelativeHumidity(), String.valueOf(outside.getRelativeHumidity()));
         insert(BATTERY_SPREADSHEET_ID, BATTERY_DATA_SHEET_ID, sheetsApi, timestampValue.toString(), device8.hasBatteryLevelCurrent(), String.valueOf(device8.getBatteryLevel()), device9.hasBatteryLevelCurrent(), String.valueOf(device9.getBatteryLevel()), device10.hasBatteryLevelCurrent(), String.valueOf(device10.getBatteryLevel()), outside.hasBatteryLevelCurrent(), String.valueOf(outside.getBatteryLevel()));
     }
 
-    private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence timestamp, boolean device8HasValue, String device8Value, boolean device9HasValue, String device9Value, boolean device10HasValue, String device10Value, boolean outsideHasValue, String outsideValue) throws IOException {
+    private void insert(String spreadsheetId, int sheetId, Sheets sheetsApi, CharSequence
+            timestamp, boolean device8HasValue, String device8Value, boolean device9HasValue, String
+                                device9Value, boolean device10HasValue, String device10Value, boolean outsideHasValue, String
+                                outsideValue) throws IOException {
         BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
 
         Request request1 = new Request()
