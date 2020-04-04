@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.crashlytics.android.Crashlytics;
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
@@ -159,6 +160,7 @@ public class UploadService extends IntentService {
                     Thread.sleep(500);
                 } catch (InterruptedException e1) {
                     e1.printStackTrace();
+                    Crashlytics.logException(e);
                 }
             }
         }
@@ -166,7 +168,7 @@ public class UploadService extends IntentService {
 
     private static Sample fetchCurrentConditionsOutsideOpenDataDirectly() {
         try {
-            DataLoader dataLoader = new DataLoader(OPEN_DATA_URL);
+            DataLoader dataLoader = new DataLoader("");//OPEN_DATA_URL);
             SmnRecord currentObservation = dataLoader.loadSmnData().getRecordFor("REH");
             Date d = parseDate(currentObservation.getDateTime());
             float tempCurrent = Float.valueOf(currentObservation.getTemperature());
@@ -176,6 +178,7 @@ public class UploadService extends IntentService {
             return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
         } catch (Exception e) {
             e.printStackTrace();
+            Crashlytics.logException(e);
             return getSample("Outside", null);
         }
     }
@@ -201,6 +204,7 @@ public class UploadService extends IntentService {
             return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
         } catch (Exception e) {
             e.printStackTrace();
+            Crashlytics.logException(e);
             return getSample("Outside", null);
         }
 
@@ -213,6 +217,7 @@ public class UploadService extends IntentService {
             return utcFormat.parse(dateString);
         } catch (ParseException e) {
             e.printStackTrace();
+            Crashlytics.logException(e);
             return new Date();
         }
     }
@@ -297,6 +302,7 @@ public class UploadService extends IntentService {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            Crashlytics.logException(e);
         }
     }
 
