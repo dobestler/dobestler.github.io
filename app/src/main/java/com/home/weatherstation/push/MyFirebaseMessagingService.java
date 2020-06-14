@@ -7,6 +7,8 @@ import com.google.firebase.messaging.RemoteMessage;
 import com.home.weatherstation.ScannerService;
 import com.home.weatherstation.ServiceHelper;
 
+import androidx.annotation.NonNull;
+
 /**
  * Created by dominic on 30.04.17.
  */
@@ -45,6 +47,12 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         } else {
             Log.w(TAG, "Missing data");
         }
+    }
+
+    @Override
+    public void onNewToken(@NonNull String s) {
+        Log.d(TAG, "onNewToken");
+        super.onNewToken(s);
     }
 
     private void execute(final ACTION action) {

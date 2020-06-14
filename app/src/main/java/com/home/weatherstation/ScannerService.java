@@ -15,12 +15,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import android.util.Log;
 
-import com.crashlytics.android.Crashlytics;
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -33,6 +31,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import bluemaestro.utility.sdk.ble.ScanRecordParser;
 import bluemaestro.utility.sdk.devices.BMTempHumi;
 
@@ -353,7 +353,7 @@ public class ScannerService extends Service {
                 .withOnFailCallback(new BackgroundMail.OnFailCallback() {
                     @Override
                     public void onFail() {
-                        Crashlytics.logException(new Exception("Failed to send Incomplete Scans Alert Email"));
+                        FirebaseCrashlytics.getInstance().recordException(new Exception("Failed to send Incomplete Scans Alert Email"));
                     }
                 })
                 .send();

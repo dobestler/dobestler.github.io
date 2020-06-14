@@ -4,9 +4,9 @@ import android.app.IntentService;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import android.util.Log;
 
-import com.crashlytics.android.Crashlytics;
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
@@ -23,9 +23,11 @@ import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
-import com.home.weatherstation.smn.DataLoader;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.home.weatherstation.smn.SmnData;
 import com.home.weatherstation.smn.SmnRecord;
 
+import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -33,12 +35,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -127,7 +131,9 @@ public class UploadService extends IntentService {
 
             ServiceHelper serviceHelper = new ServiceHelper();
 
-            startForeground(ID_SERVICE, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                startForeground(ID_SERVICE, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
+            }
 
             final String action = intent.getAction();
             if (ACTION_UPLOAD.equals(action)) {
@@ -160,7 +166,7 @@ public class UploadService extends IntentService {
                     Thread.sleep(500);
                 } catch (InterruptedException e1) {
                     e1.printStackTrace();
-                    Crashlytics.logException(e);
+                    FirebaseCrashlytics.getInstance().recordException(e);
                 }
             }
         }
@@ -168,17 +174,23 @@ public class UploadService extends IntentService {
 
     private static Sample fetchCurrentConditionsOutsideOpenDataDirectly() {
         try {
-            DataLoader dataLoader = new DataLoader(OPEN_DATA_URL);
-            SmnRecord currentObservation = dataLoader.loadSmnData().getRecordFor("REH");
+            URL url = new URL(OPEN_DATA_URL);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            Log.i(TAG, "Response Code: " + conn.getResponseCode());
+            InputStream in = new BufferedInputStream(conn.getInputStream(), 1024);
+            String response = IOUtils.toString(in, StandardCharsets.UTF_8);
+
+            SmnRecord currentObservation = new SmnData(response).getRecordFor("REH");
             Date d = parseDate(currentObservation.getDateTime());
-            float tempCurrent = Float.valueOf(currentObservation.getTemperature());
-            int relHumid = Integer.valueOf(currentObservation.getHumidity());
+            float tempCurrent = Float.parseFloat(currentObservation.getTemperature());
+            int relHumid = Integer.parseInt(currentObservation.getHumidity());
             //int pressure = currentObservation.getQfePressure());
 
             return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
         } catch (Exception e) {
             e.printStackTrace();
-            Crashlytics.logException(e);
+            FirebaseCrashlytics.getInstance().recordException(e);
             return getSample("Outside", null);
         }
     }
@@ -192,19 +204,19 @@ public class UploadService extends IntentService {
             // read the response
             Log.i(TAG, "Response Code: " + conn.getResponseCode());
             InputStream in = new BufferedInputStream(conn.getInputStream());
-            String response = org.apache.commons.io.IOUtils.toString(in, "UTF-8");
+            String response = org.apache.commons.io.IOUtils.toString(in, StandardCharsets.UTF_8);
             Log.v(TAG, response);
 
             JSONObject currentObservation = new JSONObject(response);
             Date d = parseDate(currentObservation.getString("dateTime"));
-            float tempCurrent = Float.valueOf(currentObservation.getString("temperature"));
-            int relHumid = Integer.valueOf(currentObservation.getString("humidity"));
+            float tempCurrent = Float.parseFloat(currentObservation.getString("temperature"));
+            int relHumid = Integer.parseInt(currentObservation.getString("humidity"));
             //int pressure = currentObservation.getInt("qfePressure");
 
             return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
         } catch (Exception e) {
             e.printStackTrace();
-            Crashlytics.logException(e);
+            FirebaseCrashlytics.getInstance().recordException(e);
             return getSample("Outside", null);
         }
 
@@ -217,7 +229,7 @@ public class UploadService extends IntentService {
             return utcFormat.parse(dateString);
         } catch (ParseException e) {
             e.printStackTrace();
-            Crashlytics.logException(e);
+            FirebaseCrashlytics.getInstance().recordException(e);
             return new Date();
         }
     }
@@ -257,7 +269,7 @@ public class UploadService extends IntentService {
 //
 //        Log.d("REQ", request2.toPrettyString());
 //        batchUpdateSpreadsheetRequest.setRequests(Arrays.asList(request1, request2));
-        batchUpdateSpreadsheetRequest.setRequests(Arrays.asList(request1));
+        batchUpdateSpreadsheetRequest.setRequests(Collections.singletonList(request1));
 
         BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
         Log.d(TAG, "Insert new row response: " + response.toPrettyString());
@@ -302,7 +314,7 @@ public class UploadService extends IntentService {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            Crashlytics.logException(e);
+            FirebaseCrashlytics.getInstance().recordException(e);
         }
     }
 
