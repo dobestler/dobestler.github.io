@@ -24,8 +24,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -69,7 +69,7 @@ public class ScannerService extends Service {
 
     private BluetoothAdapter mBluetoothAdapter;
     private ScanSettings settings;
-    private final List<ScanFilter> scanFilters = new ArrayList<>();
+    private final List<ScanFilter> scanFilters = Collections.singletonList(new ScanFilter.Builder().build());
 
     private Handler mHandler;
 
