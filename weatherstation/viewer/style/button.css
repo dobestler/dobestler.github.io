@@ -7,7 +7,7 @@
   border: none;
   outline: none;
   padding: 4px;
-  margin: 0px;
+  margin-right: 8px;
   text-color: rgb(60, 118, 61);
   background-color: rgba(255, 255, 255, 0.7);
   border-radius: 3px;
@@ -29,10 +29,10 @@
 }
 .refresh-icon svg.arrow-svg {
   position: absolute;
-  top: 4px;
-  left: 4px;
-  right: 4px;
-  bottom: 4px;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
   -webkit-transform: rotate(-40deg);
           transform: rotate(-40deg);
   -webkit-transform-origin: 50% 50%;

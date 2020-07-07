@@ -11,8 +11,6 @@
     <link href="./img/icon-192x192.png" rel="icon" sizes="192x192"/>
     <link href="./img/icon-192x192.png" rel="shortcut icon" sizes="192x192">
 
-    <link href="https://google-developers.appspot.com/fusiontables/docs/samples/style/default.css"
-          rel="stylesheet" type="text/css">
     <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <!-- Google Sheets integration -->
@@ -93,7 +91,7 @@
 
         function handleChartQueryResponse(response) {
             var data = response.getDataTable();
-            console.log(data.toJSON());
+            //console.log(data.toJSON());
 
             var max_rows = 24 * 3 * 7 // equals 7 days on highest resolution (= 1 sample every 20mins)
 
@@ -127,10 +125,8 @@
                     position: 'bottom'
                 },
                 chartArea: {
-                    left: 45,
-                    right: 0,
-                    top: 20,
-                    width: '100%'
+                    width: '91%',
+                    height: '75%'
                 },
                 hAxis: {
                     //format: 'E,dd.MM. HH:mm',
@@ -379,6 +375,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
     </script>
 
 </head>
@@ -390,20 +398,18 @@
                 <div class="col-xs-6 vertical-align-content">
                     <h1 class="panel-title">Current conditions</h1>
                 </div>
-                <div class="col-xs-4 pull-right">
-                    <div class="container">
-                        <button class="refresh-icon"
-                                onclick="sendPushAndRefresh('scan_and_upload');">
-                            <svg viewBox="0 0 90 90">
-                                <path class="circle-path"
-                                      d="M 45 45 m 0 -30 a 30 30 0 1 1 0 60 a 30 30 0 1 1 0 -60"></path>
-                            </svg>
-                            <svg class="arrow-svg" viewBox="0 0 90 90">
-                                <path class="arrow-path"
-                                      d="M 50 15 m -18 -18 l 18 18 l -18 18"></path>
-                            </svg>
-                        </button>
-                    </div>
+                <div class="col-xs-0 pull-right">
+                    <button class="refresh-icon"
+                            onclick="sendPushAndRefresh('scan_and_upload');">
+                        <svg viewBox="0 0 90 90">
+                            <path class="circle-path"
+                                  d="M 45 45 m 0 -30 a 30 30 0 1 1 0 60 a 30 30 0 1 1 0 -60"></path>
+                        </svg>
+                        <svg class="arrow-svg" viewBox="0 0 90 90">
+                            <path class="arrow-path"
+                                  d="M 50 15 m -18 -18 l 18 18 l -18 18"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
@@ -560,145 +566,6 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
