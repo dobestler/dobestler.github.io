@@ -8,9 +8,9 @@ import android.os.Build;
 import android.util.Log;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
-import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
@@ -28,7 +28,6 @@ import com.home.weatherstation.smn.SmnData;
 import com.home.weatherstation.smn.SmnRecord;
 
 import org.apache.commons.io.IOUtils;
-import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -77,7 +76,6 @@ public class UploadService extends IntentService {
     private static final int HUMIDITY_DATA_SHEET_ID = 1714261182;
     private static final int BATTERY_DATA_SHEET_ID = 1714261182;
 
-    private static final String SMN_STATION_URL = "https://opendata.netcetera.com/smn/smn/REH";
     private static final String OPEN_DATA_URL = "https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA80.csv";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
 
@@ -193,33 +191,6 @@ public class UploadService extends IntentService {
             FirebaseCrashlytics.getInstance().recordException(e);
             return getSample("Outside", null);
         }
-    }
-
-    private static Sample fetchCurrentConditionsOutsideSMN() {
-        try {
-            URL url = new URL(SMN_STATION_URL);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-
-            // read the response
-            Log.i(TAG, "Response Code: " + conn.getResponseCode());
-            InputStream in = new BufferedInputStream(conn.getInputStream());
-            String response = org.apache.commons.io.IOUtils.toString(in, StandardCharsets.UTF_8);
-            Log.v(TAG, response);
-
-            JSONObject currentObservation = new JSONObject(response);
-            Date d = parseDate(currentObservation.getString("dateTime"));
-            float tempCurrent = Float.parseFloat(currentObservation.getString("temperature"));
-            int relHumid = Integer.parseInt(currentObservation.getString("humidity"));
-            //int pressure = currentObservation.getInt("qfePressure");
-
-            return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
-        } catch (Exception e) {
-            e.printStackTrace();
-            FirebaseCrashlytics.getInstance().recordException(e);
-            return getSample("Outside", null);
-        }
-
     }
 
     private static Date parseDate(String dateString) {
@@ -360,7 +331,7 @@ public class UploadService extends IntentService {
                 .setBackOff(new ExponentialBackOff());
         credential.setSelectedAccountName(new AuthPreferences(getApplicationContext()).getUser());
 
-        HttpTransport transport = AndroidHttp.newCompatibleTransport();
+        HttpTransport transport = new NetHttpTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
         return new Sheets.Builder(
                 transport, jsonFactory, credential).setApplicationName(getString(R.string.app_name)).build();
