@@ -283,6 +283,8 @@ public class UploadService extends IntentService {
                 }
                 Storage.removeThresholdExceededHumidity(this);
             }
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
             FirebaseCrashlytics.getInstance().recordException(e);
@@ -322,7 +324,9 @@ public class UploadService extends IntentService {
         String range = "Average!F2:F2";
         ValueRange response = sheetsApi.spreadsheets().values().get(spreadsheetId, range).execute();
         Log.d(TAG, "Read average response: " + response.toPrettyString());
-        return Float.parseFloat((String) response.getValues().get(0).get(0));
+
+        String avg = (String) response.getValues().get(0).get(0);
+        return Float.parseFloat(avg);
     }
 
     private Sheets getSheetsApi() {
