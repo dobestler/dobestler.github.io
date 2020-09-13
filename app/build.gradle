@@ -66,7 +66,6 @@ dependencies {
 
     // SMN API Code
     implementation 'joda-time:joda-time:2.9.4'
-    implementation 'org.apache.httpcomponents:httpclient-android:4.3.5.1'
 
     //implementation 'org.json:json:20171018'
     testImplementation 'junit:junit:4.13'

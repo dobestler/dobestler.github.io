@@ -101,7 +101,6 @@
     <orderEntry type="library" name="Gradle: com.squareup.okhttp3:okhttp:3.12.1@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.okio:okio:1.15.0@jar" level="project" />
     <orderEntry type="library" name="Gradle: joda-time:joda-time:2.9.4@jar" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.httpcomponents:httpclient-android:4.3.5.1@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.google.api-client:google-api-client-android:1.30.9@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.google.apis:google-api-services-sheets:v4-rev9-1.22.0@jar" level="project" />
     <orderEntry type="library" name="Gradle: com.google.api-client:google-api-client:1.30.9@jar" level="project" />
