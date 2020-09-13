@@ -284,6 +284,7 @@ public class UploadService extends IntentService {
                 Storage.removeThresholdExceededHumidity(this);
             }
         } catch (NumberFormatException e) {
+            // Not enough data to calculate 4d average -> 'n/a' instead of float
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
