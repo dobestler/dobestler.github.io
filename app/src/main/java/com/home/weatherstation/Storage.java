@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 
 /**
  * Created by dominic on 05/07/16.
+ * <p>
+ * TODO API 30: This might not work for devices running Android 11 (API 30). See here: https://developer.android.com/about/versions/11/privacy/storage
  */
 public class Storage {
     private static final String FILENAME = "Storage";

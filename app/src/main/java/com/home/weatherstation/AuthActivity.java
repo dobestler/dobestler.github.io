@@ -45,6 +45,8 @@ public class AuthActivity extends Activity {
 
         authPreferences = new AuthPreferences(this);
 
+        // TODO API 30 Background Location https://developer.android.com/about/versions/11/privacy/location
+        // https://developer.android.com/about/versions/11/privacy/foreground-services
         mPermissions = new AndroidPermissions(this,
                 Manifest.permission.BLUETOOTH,
                 Manifest.permission.BLUETOOTH_ADMIN,
