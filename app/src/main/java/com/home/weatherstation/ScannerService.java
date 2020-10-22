@@ -18,7 +18,6 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
-import com.google.firebase.crashlytics.FirebaseCrashlytics;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -353,7 +352,7 @@ public class ScannerService extends Service {
                 .withOnFailCallback(new BackgroundMail.OnFailCallback() {
                     @Override
                     public void onFail() {
-                        FirebaseCrashlytics.getInstance().recordException(new Exception("Failed to send Incomplete Scans Alert Email"));
+                        new FirebaseHelper().sendException(ScannerService.this, new Exception("Failed to send Incomplete Scans Alert Email"));
                     }
                 })
                 .send();

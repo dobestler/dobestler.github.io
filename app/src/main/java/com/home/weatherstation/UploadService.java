@@ -23,7 +23,6 @@ import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
-import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.home.weatherstation.smn.SmnData;
 import com.home.weatherstation.smn.SmnRecord;
 
@@ -139,7 +138,7 @@ public class UploadService extends IntentService {
                 final Sample sampleDevice8 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE8);
                 final Sample sampleDevice9 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE9);
                 final Sample sampleDevice10 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE10);
-                final Sample sampleOutside = fetchCurrentConditionsOutsideOpenDataDirectly();
+                final Sample sampleOutside = fetchCurrentConditionsOutsideOpenDataDirectly(this);
                 Log.i(TAG, "" + sampleOutside);
                 upload(getSheetsApi(), timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
@@ -163,14 +162,13 @@ public class UploadService extends IntentService {
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e1) {
-                    e1.printStackTrace();
-                    FirebaseCrashlytics.getInstance().recordException(e);
+                    new FirebaseHelper().sendException(this, e);
                 }
             }
         }
     }
 
-    private static Sample fetchCurrentConditionsOutsideOpenDataDirectly() {
+    private static Sample fetchCurrentConditionsOutsideOpenDataDirectly(Context context) {
         try {
             URL url = new URL(OPEN_DATA_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -180,27 +178,25 @@ public class UploadService extends IntentService {
             String response = IOUtils.toString(in, StandardCharsets.UTF_8);
 
             SmnRecord currentObservation = new SmnData(response).getRecordFor("REH");
-            Date d = parseDate(currentObservation.getDateTime());
+            Date d = parseDate(context, currentObservation.getDateTime());
             float tempCurrent = Float.parseFloat(currentObservation.getTemperature());
-            int relHumid = Integer.parseInt(currentObservation.getHumidity());
+            int relHumid = Math.round(Float.parseFloat(currentObservation.getHumidity()));
             //int pressure = currentObservation.getQfePressure());
 
             return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
         } catch (Exception e) {
-            e.printStackTrace();
-            FirebaseCrashlytics.getInstance().recordException(e);
+            new FirebaseHelper().sendException(context, e);
             return getSample("Outside", null);
         }
     }
 
-    private static Date parseDate(String dateString) {
+    private static Date parseDate(Context context, String dateString) {
         DateFormat utcFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.getDefault());
         utcFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         try {
             return utcFormat.parse(dateString);
         } catch (ParseException e) {
-            e.printStackTrace();
-            FirebaseCrashlytics.getInstance().recordException(e);
+            new FirebaseHelper().sendException(context, e);
             return new Date();
         }
     }
@@ -284,11 +280,9 @@ public class UploadService extends IntentService {
                 Storage.removeThresholdExceededHumidity(this);
             }
         } catch (NumberFormatException e) {
-            // Not enough data to calculate 4d average -> 'n/a' instead of float
-            e.printStackTrace();
+            Log.w(TAG, "Not enough data to calculate 4d average -> 'n/a' instead of float");
         } catch (IOException e) {
-            e.printStackTrace();
-            FirebaseCrashlytics.getInstance().recordException(e);
+            new FirebaseHelper().sendException(this, e);
         }
     }
 
