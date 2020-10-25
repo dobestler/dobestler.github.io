@@ -324,7 +324,7 @@ public class ScannerService extends Service {
         incompleteScans++;
         Storage.storeIncompleteScans(getBaseContext(), incompleteScans);
         Log.i(TAG, "Handling incomplete scan result. Incomplete Scans=" + incompleteScans + " of max " + MAX_INOMPLETE_SAMPLING_ATTEMPTS);
-        if (true || incompleteScans == MAX_INOMPLETE_SAMPLING_ATTEMPTS) {
+        if (incompleteScans == MAX_INOMPLETE_SAMPLING_ATTEMPTS) {
             new ExceptionReporter().sendIncompleteScansAlert(this, incompleteScans, deviceNr8, deviceNr9, deviceNr10);
         }
     }
