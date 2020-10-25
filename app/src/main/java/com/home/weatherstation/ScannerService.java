@@ -17,8 +17,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
-
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.text.DateFormat;
@@ -198,14 +196,12 @@ public class ScannerService extends Service {
         cal.set(Calendar.MINUTE, 0); // reset to 00m:00s
         cal.set(Calendar.SECOND, 0);
 
-        if (currentMinuteOfHour >= 0 && currentMinuteOfHour < 20) {
+        if (currentMinuteOfHour < 20) {
             cal.add(Calendar.MINUTE, 20);
-        } else if (currentMinuteOfHour >= 20 && currentMinuteOfHour <= 39) {
+        } else if (currentMinuteOfHour <= 39) {
             cal.add(Calendar.MINUTE, 40);
-        } else if (currentMinuteOfHour >= 40 && currentMinuteOfHour <= 59) {
-            cal.add(Calendar.HOUR, 1);
         } else {
-            throw new IllegalArgumentException("currentHour=" + currentHourOfDay + ", currentMin=" + currentMinuteOfHour);
+            cal.add(Calendar.HOUR, 1);
         }
 
         return cal.getTimeInMillis();
@@ -297,7 +293,7 @@ public class ScannerService extends Service {
         long now = System.currentTimeMillis();
         Storage.storeLastScanTime(getBaseContext(), now);
 
-        if (hasAllSampleData()) {
+        if (false && hasAllSampleData()) {
             Storage.storeLastSuccessfulScanTime(getBaseContext(), now);
             Storage.storeIncompleteScans(getBaseContext(), 0); // reset
             upload();
@@ -328,34 +324,9 @@ public class ScannerService extends Service {
         incompleteScans++;
         Storage.storeIncompleteScans(getBaseContext(), incompleteScans);
         Log.i(TAG, "Handling incomplete scan result. Incomplete Scans=" + incompleteScans + " of max " + MAX_INOMPLETE_SAMPLING_ATTEMPTS);
-        if (incompleteScans == MAX_INOMPLETE_SAMPLING_ATTEMPTS) {
-            sendIncompleteScansAlert(incompleteScans);
+        if (true || incompleteScans == MAX_INOMPLETE_SAMPLING_ATTEMPTS) {
+            new ExceptionReporter().sendIncompleteScansAlert(this, incompleteScans, deviceNr8, deviceNr9, deviceNr10);
         }
-    }
-
-    private void sendIncompleteScansAlert(long numberOfIncompleteScans) {
-        Log.i(TAG, "Sending incomplete scan alert email...");
-        BackgroundMail.newBuilder(this)
-                .withUsername(BuildConfig.ALERT_EMAIL_FROM)
-                .withPassword(BuildConfig.ALERT_EMAIL_PASSWORD)
-                .withMailto(BuildConfig.ALERT_EMAIL_TO)
-                .withType(BackgroundMail.TYPE_PLAIN)
-                .withSubject(String.format("%s Alert: Incomplete scans", getString(R.string.app_name)))
-                .withBody(String.format(Locale.getDefault(), "%d incomplete scans in a row!", numberOfIncompleteScans))
-                .withProcessVisibility(false)
-                .withOnSuccessCallback(new BackgroundMail.OnSuccessCallback() {
-                    @Override
-                    public void onSuccess() {
-                        Log.i(TAG, "Successfully sent Incomplete Scans Alert Email");
-                    }
-                })
-                .withOnFailCallback(new BackgroundMail.OnFailCallback() {
-                    @Override
-                    public void onFail() {
-                        new FirebaseHelper().sendException(ScannerService.this, new Exception("Failed to send Incomplete Scans Alert Email"));
-                    }
-                })
-                .send();
     }
 
 

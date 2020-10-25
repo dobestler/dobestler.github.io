@@ -7,7 +7,6 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -20,6 +19,8 @@ import com.google.api.client.util.ExponentialBackOff;
 
 import java.io.IOException;
 import java.util.Arrays;
+
+import androidx.annotation.NonNull;
 
 public class AuthActivity extends Activity {
 
@@ -40,7 +41,7 @@ public class AuthActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         credential = GoogleAccountCredential.usingOAuth2(
-                getApplicationContext(), Arrays.asList(UploadService.SCOPES))
+                getApplicationContext(), Arrays.asList(RecordedDataManager.SCOPES))
                 .setBackOff(new ExponentialBackOff());
 
         authPreferences = new AuthPreferences(this);
