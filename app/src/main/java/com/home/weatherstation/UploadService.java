@@ -133,25 +133,17 @@ public class UploadService extends IntentService {
     }
 
     private void upload(Date timestamp, Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
-        int tries = 0;
-        while (tries < 4) {
-            tries++;
-            try {
-                CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
-                recordedDataManager.insert(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo8.getTemperature()), deviceNo9.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo9.getTemperature()), deviceNo10.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo10.getTemperature()), sampleOutside.hasTempCurrent(), DECIMAL_FORMAT.format(sampleOutside.getTemperature()));
-                recordedDataManager.insert(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasRelativeHumidity(), String.valueOf(deviceNo8.getRelativeHumidity()), deviceNo9.hasRelativeHumidity(), String.valueOf(deviceNo9.getRelativeHumidity()), deviceNo10.hasRelativeHumidity(), String.valueOf(deviceNo10.getRelativeHumidity()), sampleOutside.hasRelativeHumidity(), String.valueOf(sampleOutside.getRelativeHumidity()));
-                recordedDataManager.insert(BATTERY_SPREADSHEET_ID, BATTERY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasBatteryLevelCurrent(), String.valueOf(deviceNo8.getBatteryLevel()), deviceNo9.hasBatteryLevelCurrent(), String.valueOf(deviceNo9.getBatteryLevel()), deviceNo10.hasBatteryLevelCurrent(), String.valueOf(deviceNo10.getBatteryLevel()), sampleOutside.hasBatteryLevelCurrent(), String.valueOf(sampleOutside.getBatteryLevel()));
-                Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
-                return;
-            } catch (IOException e) {
-                Log.e(TAG, "Could not insert data!", e);
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e1) {
-                    new ExceptionReporter().sendException(this, e);
-                }
-            }
+
+        try {
+            CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
+            recordedDataManager.insertWithRetry(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo8.getTemperature()), deviceNo9.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo9.getTemperature()), deviceNo10.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo10.getTemperature()), sampleOutside.hasTempCurrent(), DECIMAL_FORMAT.format(sampleOutside.getTemperature()));
+            recordedDataManager.insertWithRetry(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasRelativeHumidity(), String.valueOf(deviceNo8.getRelativeHumidity()), deviceNo9.hasRelativeHumidity(), String.valueOf(deviceNo9.getRelativeHumidity()), deviceNo10.hasRelativeHumidity(), String.valueOf(deviceNo10.getRelativeHumidity()), sampleOutside.hasRelativeHumidity(), String.valueOf(sampleOutside.getRelativeHumidity()));
+            recordedDataManager.insertWithRetry(BATTERY_SPREADSHEET_ID, BATTERY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasBatteryLevelCurrent(), String.valueOf(deviceNo8.getBatteryLevel()), deviceNo9.hasBatteryLevelCurrent(), String.valueOf(deviceNo9.getBatteryLevel()), deviceNo10.hasBatteryLevelCurrent(), String.valueOf(deviceNo10.getBatteryLevel()), sampleOutside.hasBatteryLevelCurrent(), String.valueOf(sampleOutside.getBatteryLevel()));
+            Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
+        } catch (IOException e) {
+            new ExceptionReporter().sendException(this, e);
         }
+
     }
 
     private static Sample fetchCurrentConditionsOutsideOpenDataDirectly(Context context) {

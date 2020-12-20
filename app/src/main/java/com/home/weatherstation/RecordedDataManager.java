@@ -48,11 +48,37 @@ public class RecordedDataManager {
                 transport, jsonFactory, credential).setApplicationName(context.getString(R.string.app_name)).build();
     }
 
-    public void insert(String spreadsheetId, int sheetId, CharSequence timestamp,
-                       boolean device8HasValue, String device8Value,
-                       boolean device9HasValue, String device9Value,
-                       boolean device10HasValue, String device10Value,
-                       boolean outsideHasValue, String outsideValue) throws IOException {
+    public void insertWithRetry(String spreadsheetId, int sheetId, CharSequence timestamp,
+                                boolean device8HasValue, String device8Value,
+                                boolean device9HasValue, String device9Value,
+                                boolean device10HasValue, String device10Value,
+                                boolean outsideHasValue, String outsideValue) throws IOException {
+        int tries = 0;
+        while (tries < 4) {
+            tries++;
+            try {
+                insert(spreadsheetId, sheetId, timestamp,
+                        device8HasValue, device8Value,
+                        device9HasValue, device9Value,
+                        device10HasValue, device10Value,
+                        outsideHasValue, outsideValue);
+                return;
+            } catch (IOException e) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e1) {
+                    Log.e(TAG, "Could not sleep", e);
+                }
+            }
+        }
+        throw new IOException("Could not insert data to SpreadsheetId " + spreadsheetId);
+    }
+
+    private void insert(String spreadsheetId, int sheetId, CharSequence timestamp,
+                        boolean device8HasValue, String device8Value,
+                        boolean device9HasValue, String device9Value,
+                        boolean device10HasValue, String device10Value,
+                        boolean outsideHasValue, String outsideValue) throws IOException {
 
         BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
 
