@@ -80,12 +80,7 @@ public class ScannerService extends Service {
 
     // Stops scanning after 20 seconds.
     private static final long SCAN_PERIOD = 20000;
-    private final Runnable stopScanAndProcessRunnable = new Runnable() {
-        @Override
-        public void run() {
-            stopScanAndProcessResults();
-        }
-    };
+    private final Runnable stopScanAndProcessRunnable = this::stopScanAndProcessResults;
 
     private ServiceHelper serviceHelper;
 
@@ -190,7 +185,6 @@ public class ScannerService extends Service {
 
     private static long calculateNextTwentyMinsInMillis() {
         Calendar cal = Calendar.getInstance();
-        int currentHourOfDay = cal.get(Calendar.HOUR_OF_DAY);
         int currentMinuteOfHour = cal.get(Calendar.MINUTE);
 
         cal.set(Calendar.MINUTE, 0); // reset to 00m:00s
@@ -270,13 +264,16 @@ public class ScannerService extends Service {
         private void cacheSample(ScanResult result) {
             Date now = new Date();
             String deviceAddress = result.getDevice().getAddress();
-            if (DEVICE_NO08_MAC_ADDRESS.equals(deviceAddress)) {
-                deviceNr8 = parseNewDevice(result.getScanRecord(), now, DEVICE_NO8_TEMP_SHIFT_DEGREES, DEVICE_NO8_RELHUM_CALIBRATION);
-            } else if (DEVICE_NO09_MAC_ADDRESS.equals(deviceAddress)) {
-                deviceNr9 = parse(result.getScanRecord(), now);
-            } else if (DEVICE_NO10_MAC_ADDRESS.equals(deviceAddress)) {
-                deviceNr10 = parseNewDevice(result.getScanRecord(), now, DEVICE_N10_TEMP_SHIFT_DEGREES, DEVICE_N10_RELHUM_CALIBRATION);
+            if (result.getScanRecord() != null) {
+                if (DEVICE_NO08_MAC_ADDRESS.equals(deviceAddress)) {
+                    deviceNr8 = parseNewDevice(result.getScanRecord(), now, DEVICE_NO8_TEMP_SHIFT_DEGREES, DEVICE_NO8_RELHUM_CALIBRATION);
+                } else if (DEVICE_NO09_MAC_ADDRESS.equals(deviceAddress)) {
+                    deviceNr9 = parse(result.getScanRecord(), now);
+                } else if (DEVICE_NO10_MAC_ADDRESS.equals(deviceAddress)) {
+                    deviceNr10 = parseNewDevice(result.getScanRecord(), now, DEVICE_N10_TEMP_SHIFT_DEGREES, DEVICE_N10_RELHUM_CALIBRATION);
+                }
             }
+
             if (hasAllSampleData()) {
                 mHandler.removeCallbacks(stopScanAndProcessRunnable);
                 stopScanAndProcessResults();
@@ -293,7 +290,7 @@ public class ScannerService extends Service {
         long now = System.currentTimeMillis();
         Storage.storeLastScanTime(getBaseContext(), now);
 
-        if (false && hasAllSampleData()) {
+        if (hasAllSampleData()) {
             Storage.storeLastSuccessfulScanTime(getBaseContext(), now);
             Storage.storeIncompleteScans(getBaseContext(), 0); // reset
             upload();
@@ -338,34 +335,17 @@ public class ScannerService extends Service {
             Log.i(TAG, "ensureBTAndStartScan: BT is OFF. Restarting BT ...");
             restartBT(); // wait 10s after to make sure its restarted (dirty hack!)
             Log.i(TAG, "Starting scan in 10s ...");
-            new Handler(getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    scanLeDevice();
-                }
-            }, 10000);
+            new Handler(getMainLooper()).postDelayed(this::scanLeDevice, 10000);
         }
 
     }
 
     private void restartBT() {
         Log.i(TAG, "Disabling BT in 1s ...");
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                mBluetoothAdapter.disable();
-            }
-        }, 1000);
+        mHandler.postDelayed(() -> mBluetoothAdapter.disable(), 1000);
 
         Log.i(TAG, "Re-enabling BT in 5s ...");
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-
-                mBluetoothAdapter.enable();
-
-            }
-        }, 5000);
+        mHandler.postDelayed(() -> mBluetoothAdapter.enable(), 5000);
     }
 
     // Old (bigger) devices
