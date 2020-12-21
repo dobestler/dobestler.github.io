@@ -23,10 +23,10 @@ android {
 
     defaultConfig {
         applicationId "com.home.weatherstation"
-        minSdkVersion 23
+        minSdkVersion 29
         targetSdkVersion 30
         versionCode 1
-        versionName "2.2.3"
+        versionName "2.2.4"
     }
 
 

@@ -4,7 +4,6 @@ import android.app.IntentService;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.util.Log;
 
 import com.home.weatherstation.smn.SmnData;
@@ -113,9 +112,7 @@ public class UploadService extends IntentService {
 
             ServiceHelper serviceHelper = new ServiceHelper();
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                startForeground(ID_SERVICE, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
-            }
+            startForeground(ID_SERVICE, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
 
             final String action = intent.getAction();
             if (ACTION_UPLOAD.equals(action)) {

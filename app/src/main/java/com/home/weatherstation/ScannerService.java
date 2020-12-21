@@ -13,7 +13,6 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
@@ -31,7 +30,6 @@ import java.util.Objects;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 import bluemaestro.utility.sdk.ble.ScanRecordParser;
 import bluemaestro.utility.sdk.devices.BMTempHumi;
 
@@ -249,14 +247,12 @@ public class ScannerService extends Service {
     }
 
     private final ScanCallback mScanCallback = new ScanCallback() {
-        @RequiresApi(api = Build.VERSION_CODES.Q)
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
             Log.d(TAG, "onScanResult: Result = " + result.toString());
             cacheSample(result);
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.Q)
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             for (ScanResult result : results) {
@@ -265,7 +261,6 @@ public class ScannerService extends Service {
             }
         }
 
-        @RequiresApi(api = Build.VERSION_CODES.Q)
         private void cacheSample(ScanResult result) {
             Date now = new Date();
             String deviceAddress = result.getDevice().getAddress();

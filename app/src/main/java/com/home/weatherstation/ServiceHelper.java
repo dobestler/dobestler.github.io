@@ -6,10 +6,9 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
-import androidx.annotation.RequiresApi;
-import androidx.core.app.NotificationCompat;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
 
 public class ServiceHelper {
 
@@ -20,24 +19,16 @@ public class ServiceHelper {
     }
 
     public void startForegroundService(Context context, Intent intent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent);
-        } else {
-            context.startService(intent);
-        }
+        context.startForegroundService(intent);
     }
 
     public PendingIntent getForegroundServicePendingIntent(Context context, Intent intent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            return PendingIntent.getForegroundService(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        } else {
-            return PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
-        }
+        return PendingIntent.getForegroundService(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     public Notification createNotification(Context context, int importance, String text, boolean ongoing) {
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        String channelId = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? createNotificationChannel(notificationManager) : "";
+        String channelId = createNotificationChannel(notificationManager);
         NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(context, channelId);
         return notificationBuilder.setOngoing(true)
                 .setSmallIcon(R.mipmap.ic_launcher)
@@ -50,7 +41,6 @@ public class ServiceHelper {
     }
 
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private String createNotificationChannel(NotificationManager notificationManager) {
         if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
             Log.d("ServiceHelper", "Creating new NotificationChannel ...");

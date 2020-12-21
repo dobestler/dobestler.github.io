@@ -113,7 +113,7 @@ public class RecordedDataManager {
         ValueRange content = new ValueRange();
         List<List<Object>> values = new ArrayList<>();
         List<Object> vals = Arrays.asList(
-                (Object) String.valueOf(timestamp),
+                String.valueOf(timestamp),
                 (device8HasValue ? device8Value : ""),
                 (device9HasValue ? device9Value : ""),
                 (device10HasValue ? device10Value : ""),
