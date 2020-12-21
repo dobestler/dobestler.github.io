@@ -109,6 +109,8 @@ public class UploadService extends IntentService {
 
         if (intent != null) {
 
+            Log.v(TAG, "onHandleIntent ACTION = " + intent.getAction());
+
             ServiceHelper serviceHelper = new ServiceHelper();
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -151,7 +153,7 @@ public class UploadService extends IntentService {
             URL url = new URL(OPEN_DATA_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            Log.i(TAG, "Response Code: " + conn.getResponseCode());
+            Log.v(TAG, "Fetch Outside Conditions - Response Code: " + conn.getResponseCode());
             InputStream in = new BufferedInputStream(conn.getInputStream(), 1024);
             String response = IOUtils.toString(in, StandardCharsets.UTF_8);
 
