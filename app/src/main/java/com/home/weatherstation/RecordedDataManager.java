@@ -14,15 +14,14 @@ import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetResponse;
 import com.google.api.services.sheets.v4.model.DimensionRange;
+import com.google.api.services.sheets.v4.model.GridCoordinate;
 import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
+import com.google.api.services.sheets.v4.model.PasteDataRequest;
 import com.google.api.services.sheets.v4.model.Request;
-import com.google.api.services.sheets.v4.model.UpdateValuesResponse;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 public class RecordedDataManager {
@@ -80,48 +79,27 @@ public class RecordedDataManager {
                         boolean device10HasValue, String device10Value,
                         boolean outsideHasValue, String outsideValue) throws IOException {
 
-        BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest();
-
-        Request request1 = new Request()
-                .setInsertDimension(new InsertDimensionRequest()
-                        .setRange(new DimensionRange()
-                                .setSheetId(sheetId).setDimension("ROWS").setStartIndex(1).setEndIndex(2))
-                        .setInheritFromBefore(false));
-
-
-//        List<CellData> values = new ArrayList<>();
-//        values.add(new CellData().setUserEnteredFormat(new CellFormat().setNumberFormat(NumberFormat)))
-//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(timestamp))));
-//        values.add(new CellData().setEffectiveValue(new ExtendedValue().setStringValue(String.valueOf(device8HasValue ? device8Value : ""))));
-//
-//        Request request2 = new Request()
-//                .setUpdateCells(new UpdateCellsRequest()
-//                        .setStart(new GridCoordinate().setSheetId(sheetId).setRowIndex(1).setColumnIndex(0))
-//                        .setFields("*")
-//                        .setRows(Arrays.asList(new RowData().setValues(values)))
-//                );
-//
-//        Log.d("REQ", request2.toPrettyString());
-//        batchUpdateSpreadsheetRequest.setRequests(Arrays.asList(request1, request2));
-        batchUpdateSpreadsheetRequest.setRequests(Collections.singletonList(request1));
-
-        BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-        Log.d(TAG, "Insert new row response: " + response.toPrettyString());
-
-        // Write data TODO test above and remove below
-        String range = "Data!A2:E2";
-        ValueRange content = new ValueRange();
-        List<List<Object>> values = new ArrayList<>();
-        List<Object> vals = Arrays.asList(
+        String delimiter = ";;";
+        List<String> dataList = Arrays.asList(
                 String.valueOf(timestamp),
                 (device8HasValue ? device8Value : ""),
                 (device9HasValue ? device9Value : ""),
                 (device10HasValue ? device10Value : ""),
                 (outsideHasValue ? outsideValue : ""));
-        values.add(vals);
-        content.setValues(values);
-        UpdateValuesResponse response2 = sheetsApi.spreadsheets().values().update(spreadsheetId, range, content).setValueInputOption("USER_ENTERED").execute();
-        Log.d(TAG, "Write data response: " + response2.toPrettyString());
+
+        InsertDimensionRequest insertRow = new InsertDimensionRequest();
+        insertRow.setRange(new DimensionRange().setDimension("ROWS").setStartIndex(1).setEndIndex(2).setSheetId(sheetId));
+        // PasteDataRequest is a hack to insert new row AND update data with one request
+        PasteDataRequest data = new PasteDataRequest().setData(String.join(delimiter, dataList)).setDelimiter(delimiter)
+                .setCoordinate(new GridCoordinate().setColumnIndex(0).setRowIndex(1).setSheetId(sheetId));
+
+        BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest().setRequests(Arrays.asList(
+                new Request().setInsertDimension(insertRow),
+                new Request().setPasteData(data)
+        ));
+
+        BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
+        Log.d(TAG, "Insert new data response: " + response.toPrettyString());
     }
 
     public float queryAvg(String spreadsheetId) throws IOException {
