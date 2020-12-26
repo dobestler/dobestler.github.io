@@ -133,10 +133,23 @@ public class UploadService extends IntentService {
 
     private void upload(Date timestamp, Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
 
+        CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
+
         try {
-            CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
             recordedDataManager.insertWithRetry(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo8.getTemperature()), deviceNo9.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo9.getTemperature()), deviceNo10.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo10.getTemperature()), sampleOutside.hasTempCurrent(), DECIMAL_FORMAT.format(sampleOutside.getTemperature()));
+            Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
+        } catch (IOException e) {
+            new ExceptionReporter().sendException(this, e);
+        }
+
+        try {
             recordedDataManager.insertWithRetry(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasRelativeHumidity(), String.valueOf(deviceNo8.getRelativeHumidity()), deviceNo9.hasRelativeHumidity(), String.valueOf(deviceNo9.getRelativeHumidity()), deviceNo10.hasRelativeHumidity(), String.valueOf(deviceNo10.getRelativeHumidity()), sampleOutside.hasRelativeHumidity(), String.valueOf(sampleOutside.getRelativeHumidity()));
+            Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
+        } catch (IOException e) {
+            new ExceptionReporter().sendException(this, e);
+        }
+
+        try {
             recordedDataManager.insertWithRetry(BATTERY_SPREADSHEET_ID, BATTERY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasBatteryLevelCurrent(), String.valueOf(deviceNo8.getBatteryLevel()), deviceNo9.hasBatteryLevelCurrent(), String.valueOf(deviceNo9.getBatteryLevel()), deviceNo10.hasBatteryLevelCurrent(), String.valueOf(deviceNo10.getBatteryLevel()), sampleOutside.hasBatteryLevelCurrent(), String.valueOf(sampleOutside.getBatteryLevel()));
             Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
         } catch (IOException e) {

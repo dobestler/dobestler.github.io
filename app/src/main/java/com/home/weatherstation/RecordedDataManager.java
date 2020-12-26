@@ -21,6 +21,7 @@ import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.ValueRange;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -52,6 +53,7 @@ public class RecordedDataManager {
                                 boolean device9HasValue, String device9Value,
                                 boolean device10HasValue, String device10Value,
                                 boolean outsideHasValue, String outsideValue) throws IOException {
+        ArrayList<String> exceptionMessages = new ArrayList<>();
         int tries = 0;
         while (tries < 4) {
             tries++;
@@ -63,14 +65,16 @@ public class RecordedDataManager {
                         outsideHasValue, outsideValue);
                 return;
             } catch (IOException e) {
+                exceptionMessages.add(e.getMessage());
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e1) {
-                    Log.e(TAG, "Could not sleep", e);
+                    Log.e(TAG, "Could not sleep", e1);
                 }
             }
         }
-        throw new IOException("Could not insert data to SpreadsheetId " + spreadsheetId);
+        throw new IOException("Could not insert data to SpreadsheetId " + spreadsheetId +
+                "\n Exceptions: " + String.join("\n", exceptionMessages));
     }
 
     private void insert(String spreadsheetId, int sheetId, CharSequence timestamp,
