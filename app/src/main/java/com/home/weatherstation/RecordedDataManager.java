@@ -58,6 +58,7 @@ public class RecordedDataManager {
         while (tries < 4) {
             tries++;
             try {
+
                 insert(spreadsheetId, sheetId, timestamp,
                         device8HasValue, device8Value,
                         device9HasValue, device9Value,
