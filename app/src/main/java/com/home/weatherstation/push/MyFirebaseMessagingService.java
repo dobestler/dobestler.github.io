@@ -4,8 +4,11 @@ import android.util.Log;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.home.weatherstation.ExceptionReporter;
 import com.home.weatherstation.ScannerService;
 import com.home.weatherstation.ServiceHelper;
+import com.home.weatherstation.Storage;
+import com.home.weatherstation.UploadService;
 
 import androidx.annotation.NonNull;
 
@@ -18,7 +21,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     private static final String TAG = MyFirebaseMessagingService.class.getSimpleName();
 
     enum ACTION {
-        SCAN_AND_UPLOAD_NOW("scan_and_upload"), PUBLISH_LOGS("publish_logs");
+        SCAN_AND_UPLOAD_NOW("scan_and_upload"), CHECK_THRESHOLDS("check_thresholds"), PUBLISH_LOGS("publish_logs");
 
         private String action;
 
@@ -39,8 +42,8 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
-        Log.d(TAG, "From: " + remoteMessage.getFrom());
-        Log.d(TAG, "Data: " + remoteMessage.getData());
+        Log.d(TAG, "onMessageReceived From: " + remoteMessage.getFrom());
+        Log.d(TAG, "onMessageReceived Data: " + remoteMessage.getData());
 
         if (remoteMessage.getData().size() > 0) {
             execute(ACTION.get(remoteMessage.getData().get("action")));
@@ -57,13 +60,17 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     private void execute(final ACTION action) {
         if (action == null) {
-            Log.w(TAG, "Ignoring unknown action");
+            new ExceptionReporter().sendException(this, new IllegalArgumentException("Ignoring unknown action"));
             return;
         }
 
         switch (action) {
             case SCAN_AND_UPLOAD_NOW: {
                 new ServiceHelper().startForegroundService(this, ScannerService.buildScanAndUploadIntent(this));
+                break;
+            }
+            case CHECK_THRESHOLDS: {
+                new ServiceHelper().startForegroundService(this, UploadService.buildCheckThresholdsIntent(this, Storage.readAlertingConfig(this)));
                 break;
             }
             case PUBLISH_LOGS: {

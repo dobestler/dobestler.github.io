@@ -24,7 +24,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 
 /**
  * An {@link IntentService} subclass for handling asynchronous task requests in
@@ -63,9 +62,14 @@ public class UploadService extends IntentService {
     }
 
     /**
+     * Starts this service to perform @ACTION_CHECK_THRESHOLDS with the given parameters. If
+     * the service is already performing a task this action will be queued.
+     * <p>
      * Sends an alert if the average value for the last 7 days is below or above the thresholds.
+     *
+     * @see IntentService
      */
-    public static Intent checkThresholds(final Context context, final AlertingConfig config) {
+    public static Intent buildCheckThresholdsIntent(final Context context, final AlertingConfig config) {
         Intent intent = new Intent(context, UploadService.class);
         intent.setAction(ACTION_CHECK_THRESHOLDS);
         intent.putExtra(EXTRA_ALERTING_CONFIG, config);
@@ -73,8 +77,10 @@ public class UploadService extends IntentService {
     }
 
     /**
-     * Starts this service to perform action Foo with the given parameters. If
+     * Starts this service to perform @ACTION_UPLOAD with the given parameters. If
      * the service is already performing a task this action will be queued.
+     * <p>
+     * Uploads the samples.
      *
      * @see IntentService
      */
@@ -193,7 +199,7 @@ public class UploadService extends IntentService {
 
 
     private void checkThresholds(final AlertingConfig alertingConfig) {
-        int lastXdays = -4; // should be fetched from Sheets (or maybe sheets should trigger this email alltogether)
+        int lastXdays = -4; // should be fetched from Sheets (or maybe sheets should trigger this email altogether)
 
         try {
             float averageHum = recordedDataManager.queryAvg(HUMIDITY_SPREADSHEET_ID);
@@ -203,9 +209,8 @@ public class UploadService extends IntentService {
             Storage.storeAverageHumidity(this, averageHum);
             final ExceptionReporter exceptionReporter = new ExceptionReporter();
             if (averageHum < alertingConfig.getLowerThresholdHumidity() || averageHum > alertingConfig.getUpperThresholdHumidity()) {
-                // send alert only every 8 hours
                 long now = System.currentTimeMillis();
-                if (thresholdExceededHumidityFromStorage == -1 || (now - thresholdExceededHumidityFromStorage > TimeUnit.HOURS.toMillis(8))) {
+                if (thresholdExceededHumidityFromStorage == -1) {
                     Storage.storeThresholdExceededHumidity(this, now);
                     exceptionReporter.sendThresholdExceededAlert(this, averageHum, lastXdays, alertingConfig.getLowerThresholdHumidity(), alertingConfig.getUpperThresholdHumidity());
                 }
