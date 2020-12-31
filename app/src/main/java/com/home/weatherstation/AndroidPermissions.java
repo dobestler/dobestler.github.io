@@ -6,14 +6,16 @@ package com.home.weatherstation;
 
 import android.app.Activity;
 import android.content.pm.PackageManager;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import android.util.Log;
+
+import com.hypertrack.hyperlog.HyperLog;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 /**
  * Helper to handle the new Android 6.0 Permissions requests.
@@ -66,7 +68,7 @@ public class AndroidPermissions {
             log.append(permission).append("\n");
         }
 
-        Log.i(getClass().getSimpleName(), log.toString());
+        HyperLog.i(getClass().getSimpleName(), log.toString());
 
         ActivityCompat.requestPermissions(mContext, request, requestCode);
     }

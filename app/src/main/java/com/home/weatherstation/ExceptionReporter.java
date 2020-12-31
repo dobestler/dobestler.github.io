@@ -1,9 +1,9 @@
 package com.home.weatherstation;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
+import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -38,7 +38,7 @@ public class ExceptionReporter {
     }
 
     public void sendIncompleteScansAlert(final Context context, long numberOfIncompleteScans, Sample deviceNr8, Sample deviceNr9, Sample deviceNr10) {
-        Log.i(TAG, "Sending incomplete scan alert email...");
+        HyperLog.i(TAG, "Sending incomplete scan alert email...");
         String body1 = String.format(Locale.getDefault(), "%d incomplete scans in a row!", numberOfIncompleteScans);
         String body2 = deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10;
         BackgroundMail.newBuilder(context)
@@ -54,7 +54,7 @@ public class ExceptionReporter {
 
     public void sendThresholdRecoveredAlert(final Context context, double recoveringValue,
                                             int lastXdays, float lowerThreshold, float upperThreshold) {
-        Log.i(TAG, "Sending Threshold Recovered alert email...");
+        HyperLog.i(TAG, "Sending Threshold Recovered alert email...");
         String subject = String.format("%s Alert: %s threshold recovered", context.getString(R.string.app_name), "Humidity");
         String body = String.format(Locale.getDefault(), "Measured avg. for the last %d days = %s \n" +
                 "Lower threshold = %s\n" +
@@ -64,7 +64,7 @@ public class ExceptionReporter {
 
     public void sendThresholdExceededAlert(final Context context, double exceedingValue,
                                            int lastXdays, float lowerThreshold, float upperThreshold) {
-        Log.i(TAG, "Sending Threshold Exceeded alert email...");
+        HyperLog.i(TAG, "Sending Threshold Exceeded alert email...");
         String subject = String.format("%s Alert: %s threshold exceeded", context.getString(R.string.app_name), "Humidity");
         String body = String.format(Locale.getDefault(), "Measured avg. for the last %d days = %s \n" +
                 "Lower threshold = %s\n" +

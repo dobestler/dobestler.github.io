@@ -1,7 +1,5 @@
 package com.home.weatherstation.push;
 
-import android.util.Log;
-
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.home.weatherstation.ExceptionReporter;
@@ -9,6 +7,7 @@ import com.home.weatherstation.ScannerService;
 import com.home.weatherstation.ServiceHelper;
 import com.home.weatherstation.Storage;
 import com.home.weatherstation.UploadService;
+import com.hypertrack.hyperlog.HyperLog;
 
 import androidx.annotation.NonNull;
 
@@ -35,26 +34,25 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     return a;
                 }
             }
-            Log.w(TAG, "Unknown action: " + action);
+            HyperLog.w(TAG, "Unknown action: " + action);
             return null;
         }
     }
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
-        Log.d(TAG, "onMessageReceived From: " + remoteMessage.getFrom());
-        Log.d(TAG, "onMessageReceived Data: " + remoteMessage.getData());
+        HyperLog.d(TAG, "onMessageReceived From: " + remoteMessage.getFrom() + " - " + remoteMessage.getData());
 
         if (remoteMessage.getData().size() > 0) {
             execute(ACTION.get(remoteMessage.getData().get("action")));
         } else {
-            Log.w(TAG, "Missing data");
+            HyperLog.w(TAG, "Missing data");
         }
     }
 
     @Override
     public void onNewToken(@NonNull String s) {
-        Log.d(TAG, "onNewToken");
+        HyperLog.d(TAG, "onNewToken");
         super.onNewToken(s);
     }
 
@@ -74,7 +72,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 break;
             }
             case PUBLISH_LOGS: {
-                Log.w(TAG, "Not yet implemented");
+                HyperLog.w(TAG, "Not yet implemented");
                 break;
             }
 

@@ -7,7 +7,6 @@ import android.app.Dialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.google.android.gms.auth.GoogleAuthException;
@@ -16,6 +15,7 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.ExponentialBackOff;
+import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -62,7 +62,7 @@ public class AuthActivity extends Activity {
         if (mPermissions.checkPermissions()) {
             doStart();
         } else {
-            Log.d(TAG, "Some needed permissions are missing. Requesting them.");
+            HyperLog.d(TAG, "Some needed permissions are missing. Requesting them.");
             mPermissions.requestPermissions(PERMISSIONS_REQUEST_CODE);
         }
     }
@@ -71,7 +71,7 @@ public class AuthActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        Log.d(TAG, "onRequestPermissionsResult");
+        HyperLog.d(TAG, "onRequestPermissionsResult");
 
         if (mPermissions.areAllRequiredPermissionsGranted(permissions, grantResults)) {
             doStart();
@@ -92,7 +92,7 @@ public class AuthActivity extends Activity {
     }
 
     private void showError(String message) {
-        Log.e(TAG, message);
+        HyperLog.e(TAG, message);
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
@@ -191,7 +191,7 @@ public class AuthActivity extends Activity {
         protected String doInBackground(Void... params) {
             try {
                 String oauthToken = credential.getToken();
-                Log.d(TAG, "Acquired token " + oauthToken);
+                HyperLog.d(TAG, "Acquired token " + oauthToken);
                 return oauthToken;
             } catch (UserRecoverableAuthException e) {
                 // Requesting an authorization code will always throw

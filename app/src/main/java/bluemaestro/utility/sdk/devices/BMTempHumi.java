@@ -22,16 +22,6 @@
 
 package bluemaestro.utility.sdk.devices;
 
-import android.bluetooth.BluetoothDevice;
-import android.graphics.Color;
-import android.util.Log;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * Created by Garrett on 17/08/2016.
  */
@@ -77,8 +67,7 @@ public class BMTempHumi { //extends BMDevice {
     private double avg24DewPoint;
 
 
-
-    public BMTempHumi(byte [] mData, byte[] sData) {
+    public BMTempHumi(byte[] mData, byte[] sData) {
         super();
 
         this.battery = mData[4];
@@ -112,11 +101,12 @@ public class BMTempHumi { //extends BMDevice {
 
     /**
      * Convert two bytes to unsigned int 16
+     *
      * @param first
      * @param second
      * @return
      */
-    protected static final int convertToUInt16(byte first, byte second){
+    protected static final int convertToUInt16(byte first, byte second) {
         int value = (int) first & 0xFF;
         value *= 256;
         value += (int) second & 0xFF;
@@ -124,75 +114,87 @@ public class BMTempHumi { //extends BMDevice {
         return value;
     }
 
-    public int getBatteryLevel(){
+    public int getBatteryLevel() {
         return battery;
-}
+    }
 
-    public double getCurrentTemperature(){
+    public double getCurrentTemperature() {
         return currTemperature;
     }
-    public double getCurrentHumidity(){
+
+    public double getCurrentHumidity() {
         return currHumidity;
     }
-    public double getCurrentDewPoint(){
+
+    public double getCurrentDewPoint() {
         return currDewPoint;
     }
 
-    public boolean isInAeroplaneMode(){
+    public boolean isInAeroplaneMode() {
         return mode % 100 == 5;
     }
-    public boolean isInFahrenheit(){
+
+    public boolean isInFahrenheit() {
         return mode >= 100;
     }
-    public String getTempUnits(){
+
+    public String getTempUnits() {
         return isInFahrenheit() ? "°F" : "°C";
     }
 
-    public int getNumBreach(){
+    public int getNumBreach() {
         return numBreach;
     }
 
-    public double getHighestTemperature(){
+    public double getHighestTemperature() {
         return highTemperature;
     }
-    public double getHighestHumidity(){
+
+    public double getHighestHumidity() {
         return highHumidity;
     }
 
-    public double getLowestTemperature(){
+    public double getLowestTemperature() {
         return lowTemperature;
     }
-    public double getLowestHumidity(){
+
+    public double getLowestHumidity() {
         return lowHumidity;
     }
 
-    public double getHighest24Temperature(){
+    public double getHighest24Temperature() {
         return high24Temperature;
     }
-    public double getHighest24Humidity(){
+
+    public double getHighest24Humidity() {
         return high24Humidity;
     }
-    public double getHighest24DewPoint(){
+
+    public double getHighest24DewPoint() {
         return high24DewPoint;
     }
 
-    public double getLowest24Temperature(){
+    public double getLowest24Temperature() {
         return low24Temperature;
     }
-    public double getLowest24Humidity(){
+
+    public double getLowest24Humidity() {
         return low24Humidity;
     }
-    public double getLowest24DewPoint(){
+
+    public double getLowest24DewPoint() {
         return low24DewPoint;
     }
 
-    public double getAverage24Temperature(){
+    public double getAverage24Temperature() {
         return avg24Temperature;
     }
-    public double getAverage24Humidity(){
+
+    public double getAverage24Humidity() {
         return avg24Humidity;
     }
-    public double getAverage24DewPoint(){
+
+    public double getAverage24DewPoint() {
         return avg24DewPoint;
     }
 

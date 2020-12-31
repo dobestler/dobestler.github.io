@@ -1,7 +1,6 @@
 package com.home.weatherstation;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.http.HttpTransport;
@@ -13,12 +12,15 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetResponse;
+import com.google.api.services.sheets.v4.model.DeleteRangeRequest;
 import com.google.api.services.sheets.v4.model.DimensionRange;
 import com.google.api.services.sheets.v4.model.GridCoordinate;
+import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.PasteDataRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,11 +50,11 @@ public class RecordedDataManager {
                 transport, jsonFactory, credential).setApplicationName(context.getString(R.string.app_name)).build();
     }
 
-    public void insertWithRetry(String spreadsheetId, int sheetId, CharSequence timestamp,
-                                boolean device8HasValue, String device8Value,
-                                boolean device9HasValue, String device9Value,
-                                boolean device10HasValue, String device10Value,
-                                boolean outsideHasValue, String outsideValue) throws IOException {
+    public synchronized void insertWithRetry(String spreadsheetId, int sheetId, CharSequence timestamp,
+                                             boolean device8HasValue, String device8Value,
+                                             boolean device9HasValue, String device9Value,
+                                             boolean device10HasValue, String device10Value,
+                                             boolean outsideHasValue, String outsideValue) throws IOException {
         ArrayList<String> exceptionMessages = new ArrayList<>();
         int tries = 0;
         while (tries < 4) {
@@ -69,7 +71,7 @@ public class RecordedDataManager {
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e1) {
-                    Log.e(TAG, "Could not sleep", e1);
+                    HyperLog.e(TAG, "Could not sleep", e1);
                 }
             }
         }
@@ -103,15 +105,62 @@ public class RecordedDataManager {
         ));
 
         BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-        Log.d(TAG, "Insert new data response: " + response.toPrettyString());
+        HyperLog.d(TAG, "Insert new data response: " + response.toPrettyString());
     }
 
-    public float queryAvg(String spreadsheetId) throws IOException {
+    public synchronized float queryAvg(String spreadsheetId) throws IOException {
         String range = "Average!F2:F2";
         ValueRange response = sheetsApi.spreadsheets().values().get(spreadsheetId, range).execute();
-        Log.d(TAG, "Read average response: " + response.toPrettyString());
+        HyperLog.d(TAG, "Read average response: " + response.toPrettyString());
 
         String avg = (String) response.getValues().get(0).get(0);
         return Float.parseFloat(avg);
+    }
+
+    public void insertWithRetry(String spreadsheetId, int sheetId, List<String> logs) throws IOException {
+        if (logs.isEmpty()) return;
+
+        ArrayList<String> exceptionMessages = new ArrayList<>();
+        int tries = 0;
+        while (tries < 4) {
+            tries++;
+            try {
+                insert(spreadsheetId, sheetId, logs);
+                return;
+            } catch (IOException e) {
+                exceptionMessages.add(e.getMessage());
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e1) {
+                    HyperLog.e(TAG, "Could not sleep", e1);
+                }
+            }
+        }
+        throw new IOException("Could not insert logs data to SpreadsheetId " + spreadsheetId +
+                "\n Exceptions: " + String.join("\n", exceptionMessages));
+    }
+
+    private void insert(String spreadsheetId, int sheetId, List<String> logs) throws IOException {
+
+        InsertDimensionRequest insertRowReq = new InsertDimensionRequest();
+        insertRowReq.setRange(new DimensionRange().setDimension("ROWS").setStartIndex(0).setEndIndex(logs.size()).setSheetId(sheetId));
+
+        // PasteDataRequest is a hack to insert new row AND update data with one request
+        String delimiter = "\n";
+        PasteDataRequest pasteDataReq = new PasteDataRequest().setData(String.join(delimiter, logs)).setDelimiter(delimiter)
+                .setCoordinate(new GridCoordinate().setColumnIndex(0).setRowIndex(0).setSheetId(sheetId));
+
+        final int maxLogEntries = 20000;
+        DeleteRangeRequest deleteRangeRequest = new DeleteRangeRequest();
+        deleteRangeRequest.setRange(new GridRange().setStartRowIndex(maxLogEntries).setSheetId(sheetId)).setShiftDimension("ROWS");
+
+        BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest().setRequests(Arrays.asList(
+                new Request().setInsertDimension(insertRowReq),
+                new Request().setPasteData(pasteDataReq),
+                new Request().setDeleteRange(deleteRangeRequest)
+        ));
+
+        BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
+        HyperLog.d(TAG, "Insert logs data response: " + response.toPrettyString());
     }
 }

@@ -4,10 +4,11 @@ import android.app.IntentService;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
 import com.home.weatherstation.smn.SmnData;
 import com.home.weatherstation.smn.SmnRecord;
+import com.hypertrack.hyperlog.DeviceLogModel;
+import com.hypertrack.hyperlog.HyperLog;
 
 import org.apache.commons.io.IOUtils;
 
@@ -21,7 +22,9 @@ import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -38,6 +41,7 @@ public class UploadService extends IntentService {
 
     private static final String ACTION_UPLOAD = "com.home.weatherstation.action.upload";
     private static final String ACTION_CHECK_THRESHOLDS = "com.home.weatherstation.action.checkthresholds";
+    private static final String ACTION_PUBLISH_LOGS = "com.home.weatherstation.action.publishlogs";
 
     private static final String EXTRA_TIMESTAMP = "com.home.weatherstation.extra.timestamp";
     private static final String EXTRA_SAMPLE_DEVICE8 = "com.home.weatherstation.extra.sampledevice8";
@@ -52,6 +56,10 @@ public class UploadService extends IntentService {
     private static final int HUMIDITY_DATA_SHEET_ID = 1714261182;
     private static final int BATTERY_DATA_SHEET_ID = 1714261182;
 
+    private static final String CONFIG_AND_LOGS_SPREADSHEET_ID = "170j9y4aZxPRHIUCS5WqqtaF60wLBi1iroIF7gXUUgW0";
+    private static final int LOGS_SHEET_ID = 767230915;
+
+
     private static final String OPEN_DATA_URL = "https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA80.csv";
     private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
 
@@ -59,6 +67,20 @@ public class UploadService extends IntentService {
 
     public UploadService() {
         super("UploadService");
+    }
+
+    /**
+     * Starts this service to perform @ACTION_PUBLISH_LOGS with the given parameters. If
+     * the service is already performing a task this action will be queued.
+     * <p>
+     * Publishes the available logs.
+     *
+     * @see IntentService
+     */
+    public static Intent buildPublishLogsIntent(final Context context) {
+        Intent intent = new Intent(context, UploadService.class);
+        intent.setAction(ACTION_PUBLISH_LOGS);
+        return intent;
     }
 
     /**
@@ -86,7 +108,7 @@ public class UploadService extends IntentService {
      */
     public static Intent buildStartUploadIntent(final Context context, final Date timestamp, final Sample sampleDeviceNo8, final Sample sampleDeviceNo9, final Sample sampleDeviceNo10) {
         if (sampleDeviceNo8 == null && sampleDeviceNo9 == null && sampleDeviceNo10 == null) {
-            Log.w(TAG, "Not starting upload because all samples are null");
+            HyperLog.w(TAG, "Not starting upload because all samples are null");
             return null;
         }
 
@@ -114,7 +136,7 @@ public class UploadService extends IntentService {
 
         if (intent != null) {
 
-            Log.v(TAG, "onHandleIntent ACTION = " + intent.getAction());
+            HyperLog.v(TAG, "onHandleIntent ACTION = " + intent.getAction());
 
             ServiceHelper serviceHelper = new ServiceHelper();
 
@@ -127,12 +149,30 @@ public class UploadService extends IntentService {
                 final Sample sampleDevice9 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE9);
                 final Sample sampleDevice10 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE10);
                 final Sample sampleOutside = fetchCurrentConditionsOutsideOpenDataDirectly(this);
-                Log.i(TAG, "" + sampleOutside);
+                HyperLog.i(TAG, "" + sampleOutside);
                 upload(timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
                 checkThresholds((AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
+            } else if (ACTION_PUBLISH_LOGS.equals(action)) {
+
+                //TODO Define when to upload logs (once a day + from WEB UI)
+                //TODO OPTIONAL Fix Timezone in timestamp (optional)
+                //TODO OPTIONAL Refactor RecordedDataManager (SheetsProvider used by RemoteDataRecorder + RemoteLogsRecorder)
+
+                // TODO Move this closer to where \n is used as delimiter (LogsRecorder?)
+                final List<DeviceLogModel> deviceLogs = HyperLog.getDeviceLogs(true);
+                final List<String> reversedAndEscapedLogs = new ArrayList<>();
+                for (DeviceLogModel logEntry : deviceLogs) {
+                    reversedAndEscapedLogs.add(0, logEntry.getDeviceLog().replace("\n", " \\ "));
+                }
+
+                try {
+                    recordedDataManager.insertWithRetry(CONFIG_AND_LOGS_SPREADSHEET_ID, LOGS_SHEET_ID, reversedAndEscapedLogs);
+                } catch (IOException e) {
+                    new ExceptionReporter().sendException(this, e);
+                }
             } else {
-                Log.w(TAG, "Unknown action: " + action);
+                HyperLog.w(TAG, "Unknown action: " + action);
             }
         }
     }
@@ -169,7 +209,7 @@ public class UploadService extends IntentService {
             URL url = new URL(OPEN_DATA_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            Log.v(TAG, "Fetch Outside Conditions - Response Code: " + conn.getResponseCode());
+            HyperLog.v(TAG, "Fetch Outside Conditions - Response Code: " + conn.getResponseCode());
             InputStream in = new BufferedInputStream(conn.getInputStream(), 1024);
             String response = IOUtils.toString(in, StandardCharsets.UTF_8);
 
@@ -221,7 +261,7 @@ public class UploadService extends IntentService {
                 Storage.removeThresholdExceededHumidity(this);
             }
         } catch (NumberFormatException e) {
-            Log.w(TAG, "Not enough data to calculate 4d average -> 'n/a' instead of float");
+            HyperLog.w(TAG, "Not enough data to calculate 4d average -> 'n/a' instead of float");
         } catch (IOException e) {
             new ExceptionReporter().sendException(this, e);
         }

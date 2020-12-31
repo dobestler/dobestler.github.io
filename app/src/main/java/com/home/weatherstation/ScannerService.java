@@ -15,7 +15,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.IBinder;
-import android.util.Log;
+
+import com.hypertrack.hyperlog.HyperLog;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -120,18 +121,13 @@ public class ScannerService extends Service {
     @Override
     public void onCreate() {
         serviceHelper = new ServiceHelper();
-
         alarmMgr = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
         mHandler = new Handler();
-
         mBluetoothAdapter = ((BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE)).getAdapter();
-
         settings = new ScanSettings.Builder()
                 .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                 //.setReportDelay(500)
                 .build();
-
 
         startForeground(NOTIFICATION_ID, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_MIN, getNotificationText(), true));
 
@@ -175,11 +171,11 @@ public class ScannerService extends Service {
 
 
     private void scheduleNextScan() {
-        Log.i(TAG, "Scheduling next scan ...");
+        HyperLog.i(TAG, "Scheduling next scan ...");
         alarmIntent = serviceHelper.getForegroundServicePendingIntent(this, buildScanAndUploadAndScheduleNextIntent(this));
         long triggerTime = calculateNextTwentyMinsInMillis();
         alarmMgr.setAlarmClock(new AlarmManager.AlarmClockInfo(triggerTime, PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), PendingIntent.FLAG_UPDATE_CURRENT)), alarmIntent);
-        Log.i(TAG, "Next scan scheduled at " + new Date(triggerTime));
+        HyperLog.i(TAG, "Next scan scheduled at " + new Date(triggerTime));
         Storage.storeNextScheduledScanTime(this, triggerTime);
     }
 
@@ -203,7 +199,7 @@ public class ScannerService extends Service {
 
     private void cancelNextScan() {
         if (alarmIntent != null) {
-            Log.i(TAG, "Canceling scans ...");
+            HyperLog.i(TAG, "Canceling scans ...");
             alarmMgr.cancel(alarmIntent);
             alarmIntent.cancel();
             alarmIntent = null;
@@ -242,21 +238,21 @@ public class ScannerService extends Service {
     private void stopScanAndProcessResults() {
         mBluetoothAdapter.getBluetoothLeScanner().flushPendingScanResults(mScanCallback);
         mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
-        Log.i(TAG, "Scanner stopped");
+        HyperLog.i(TAG, "Scanner stopped");
         process();
     }
 
     private final ScanCallback mScanCallback = new ScanCallback() {
         @Override
         public void onScanResult(int callbackType, ScanResult result) {
-            Log.d(TAG, "onScanResult: Result = " + result.toString());
+            HyperLog.d(TAG, "onScanResult: Result = " + result.toString());
             cacheSample(result);
         }
 
         @Override
         public void onBatchScanResults(List<ScanResult> results) {
             for (ScanResult result : results) {
-                Log.d(TAG, "onBachScanResult: Result = " + result.toString());
+                HyperLog.d(TAG, "onBachScanResult: Result = " + result.toString());
                 cacheSample(result);
             }
         }
@@ -282,7 +278,7 @@ public class ScannerService extends Service {
 
         @Override
         public void onScanFailed(int errorCode) {
-            Log.e(TAG, "onScanFailed: Error Code: " + errorCode);
+            HyperLog.e(TAG, "onScanFailed: Error Code: " + errorCode);
         }
     };
 
@@ -300,7 +296,7 @@ public class ScannerService extends Service {
             if (hasAnySampleData()) {
                 upload();
             } else {
-                Log.w(TAG, "Did not receive any results from the devices!");
+                HyperLog.w(TAG, "Did not receive any results from the devices!");
             }
         }
 
@@ -309,7 +305,7 @@ public class ScannerService extends Service {
 
     private void upload() {
         Date timestamp = deviceNr8 != null ? deviceNr8.getTimestamp() : (deviceNr9 != null ? deviceNr9.getTimestamp() : deviceNr10.getTimestamp());
-        Log.i(TAG, "Processing samples timestamp=" + timestamp + "\n" + deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10);
+        HyperLog.i(TAG, "Processing samples timestamp=" + timestamp + "\n" + deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10);
         Intent intent = UploadService.buildStartUploadIntent(this, timestamp, deviceNr8, deviceNr9, deviceNr10);
         serviceHelper.startForegroundService(this, intent);
     }
@@ -318,7 +314,7 @@ public class ScannerService extends Service {
         long incompleteScans = Storage.readIncompleteScans(getBaseContext());
         incompleteScans++;
         Storage.storeIncompleteScans(getBaseContext(), incompleteScans);
-        Log.i(TAG, "Handling incomplete scan result. Incomplete Scans=" + incompleteScans + " of max " + MAX_INOMPLETE_SAMPLING_ATTEMPTS);
+        HyperLog.i(TAG, "Handling incomplete scan result. Incomplete Scans=" + incompleteScans + " of max " + MAX_INOMPLETE_SAMPLING_ATTEMPTS);
         if (incompleteScans == MAX_INOMPLETE_SAMPLING_ATTEMPTS) {
             new ExceptionReporter().sendIncompleteScansAlert(this, incompleteScans, deviceNr8, deviceNr9, deviceNr10);
         }
@@ -327,22 +323,22 @@ public class ScannerService extends Service {
 
     private void ensureBTAndStartScan() {
         if (mBluetoothAdapter.isEnabled()) {
-            Log.i(TAG, "ensureBTAndStartScan: BT already ON ...");
+            HyperLog.i(TAG, "ensureBTAndStartScan: BT already ON ...");
             scanLeDevice();
         } else {
-            Log.i(TAG, "ensureBTAndStartScan: BT is OFF. Restarting BT ...");
+            HyperLog.i(TAG, "ensureBTAndStartScan: BT is OFF. Restarting BT ...");
             restartBT(); // wait 10s after to make sure its restarted (dirty hack!)
-            Log.i(TAG, "Starting scan in 10s ...");
+            HyperLog.i(TAG, "Starting scan in 10s ...");
             new Handler(getMainLooper()).postDelayed(this::scanLeDevice, 10000);
         }
 
     }
 
     private void restartBT() {
-        Log.i(TAG, "Disabling BT in 1s ...");
+        HyperLog.i(TAG, "Disabling BT in 1s ...");
         mHandler.postDelayed(() -> mBluetoothAdapter.disable(), 1000);
 
-        Log.i(TAG, "Re-enabling BT in 5s ...");
+        HyperLog.i(TAG, "Re-enabling BT in 5s ...");
         mHandler.postDelayed(() -> mBluetoothAdapter.enable(), 5000);
     }
 
@@ -353,7 +349,7 @@ public class ScannerService extends Service {
         byte[] manufacturerSpecData = record.getManufacturerSpecificData().valueAt(0);
 
         if (manufacturerSpecData == null) {
-            Log.w(TAG, "ManufacturerSpecificData is null");
+            HyperLog.w(TAG, "ManufacturerSpecificData is null");
             return null;
         }
 
@@ -398,6 +394,5 @@ public class ScannerService extends Service {
         }
         return text;
     }
-
 
 }

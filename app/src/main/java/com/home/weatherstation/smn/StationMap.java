@@ -1,6 +1,6 @@
 package com.home.weatherstation.smn;
 
-import android.util.Log;
+import com.hypertrack.hyperlog.HyperLog;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -189,7 +189,7 @@ public final class StationMap {
     public static Station get(String code) {
         Station station = MAP.get(code);
         if (station == null) {
-            Log.w(Class.class.getSimpleName(), "No station meta-data available for " + code);
+            HyperLog.w(Class.class.getSimpleName(), "No station meta-data available for " + code);
         }
         return station;
     }

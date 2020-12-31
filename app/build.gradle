@@ -64,6 +64,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-crashlytics:17.3.0'
     implementation 'com.github.yesidlazaro:GmailBackground:1.2.0'
 
+    implementation 'com.hypertrack:hyperlog:0.0.10'
+
     // SMN API Code
     implementation 'joda-time:joda-time:2.9.4'
 
@@ -75,7 +77,7 @@ dependencies {
     implementation('com.google.api-client:google-api-client-android:1.30.9') {
         exclude group: 'org.apache.httpcomponents'
     }
-    implementation('com.google.apis:google-api-services-sheets:v4-rev9-1.22.0') {
+    implementation('com.google.apis:google-api-services-sheets:v4-rev581-1.25.0') {
         exclude group: 'org.apache.httpcomponents'
     }
     //
