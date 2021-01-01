@@ -72,7 +72,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                 break;
             }
             case PUBLISH_LOGS: {
-                HyperLog.w(TAG, "Not yet implemented");
+                new ServiceHelper().startForegroundService(this, UploadService.buildPublishLogsIntent(this));
                 break;
             }
 

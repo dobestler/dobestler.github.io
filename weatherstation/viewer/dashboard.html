@@ -359,6 +359,7 @@
         }
 
         function sendPushAndRefresh(action) {
+            console.log('Sending push: ' + action);
             $.ajax({
                 url: 'https://fcm.googleapis.com/fcm/send',
                 headers: {
@@ -372,6 +373,21 @@
                     console.log('success: '+data);
                     queryMostRecent();
                     updateDateRangePicker();
+                }
+            });
+
+            console.log('Sending push: publish_logs');
+            $.ajax({
+                url: 'https://fcm.googleapis.com/fcm/send',
+                headers: {
+                    'Authorization':'key=AAAADxMhV_U:APA91bGAYjHKz3awDGw5FPpq2Ci4mvk6xM8u34MpBMwkYxBbwZP8puMLG5f2PA_-tPm3NMQzQ0Q42poNNy_HqVt8fYgYUbQfgjY0QyMvDCVP71j15V6lzr0SezElwEG7TPdmkleWTiRc',
+                    'Content-Type':'application/json'
+                },
+                method: 'POST',
+                dataType: 'json',
+                data: '{"to":"/topics/actions","data":{"action":"publish_logs"},"priority":"high"}',
+                success: function(data){
+                    console.log('success: '+data);
                 }
             });
         }
@@ -556,6 +572,15 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
+
+
+
+
+
+
+
+
+
 
 
 </script>

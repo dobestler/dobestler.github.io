@@ -156,8 +156,9 @@ public class UploadService extends IntentService {
             } else if (ACTION_PUBLISH_LOGS.equals(action)) {
 
                 //TODO Define when to upload logs (once a day + from WEB UI)
-                //TODO OPTIONAL Fix Timezone in timestamp (optional)
-                //TODO OPTIONAL Refactor RecordedDataManager (SheetsProvider used by RemoteDataRecorder + RemoteLogsRecorder)
+                //TODO Fix Timezone in timestamp (optional)
+                //TODO Refactor RecordedDataManager (SheetsProvider used by RemoteDataRecorder + RemoteLogsRecorder)
+                //TODO Refactor logs and log levels
 
                 // TODO Move this closer to where \n is used as delimiter (LogsRecorder?)
                 final List<DeviceLogModel> deviceLogs = HyperLog.getDeviceLogs(true);
