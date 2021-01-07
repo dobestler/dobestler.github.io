@@ -41,7 +41,7 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
-        HyperLog.d(TAG, "onMessageReceived From: " + remoteMessage.getFrom() + " - " + remoteMessage.getData());
+        HyperLog.i(TAG, "onMessageReceived from " + remoteMessage.getFrom() + " : " + remoteMessage.getData());
 
         if (remoteMessage.getData().size() > 0) {
             execute(ACTION.get(remoteMessage.getData().get("action")));

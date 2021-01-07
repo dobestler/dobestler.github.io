@@ -1,4 +1,4 @@
-package com.home.weatherstation;
+package com.home.weatherstation.remote;
 
 import android.content.Context;
 
@@ -20,53 +20,80 @@ import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.PasteDataRequest;
 import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import com.home.weatherstation.AuthPreferences;
+import com.home.weatherstation.R;
 import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class RecordedDataManager {
+public class SheetsProvider {
 
     public static final String[] SCOPES = {SheetsScopes.SPREADSHEETS};
-    private static final String TAG = RecordedDataManager.class.getSimpleName();
+    public static final String LOGS_DELIMITER = "\n";
+
+    private static final String TAG = SheetsProvider.class.getSimpleName();
+
+    private static SheetsProvider instance = null;
+
+    static final String TEMPERATURE_SPREADSHEET_ID = "1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0";
+    static final String HUMIDITY_SPREADSHEET_ID = "1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4";
+    static final String BATTERY_SPREADSHEET_ID = "1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk";
+    static final int TEMPERATURE_DATA_SHEET_ID = 1714261182;
+    static final int HUMIDITY_DATA_SHEET_ID = 1714261182;
+    static final int BATTERY_DATA_SHEET_ID = 1714261182;
+
+    static final String CONFIG_AND_LOGS_SPREADSHEET_ID = "170j9y4aZxPRHIUCS5WqqtaF60wLBi1iroIF7gXUUgW0";
+    static final int LOGS_SHEET_ID = 767230915;
+
+    static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
 
     private Sheets sheetsApi;
 
-    public RecordedDataManager(Sheets sheetsApi) {
+    private SheetsProvider(Sheets sheetsApi) {
         this.sheetsApi = sheetsApi;
     }
 
-    public static Sheets getSheetsApi(Context context) {
-        GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
-                context, Arrays.asList(SCOPES))
-                .setBackOff(new ExponentialBackOff())
-                .setSelectedAccountName(new AuthPreferences(context).getUser());
+    public static synchronized SheetsProvider getInstance(Context context) {
+        if (instance == null) {
+            HyperLog.v(TAG, "Creating new singleton instance ...");
+            GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
+                    context, Arrays.asList(SCOPES))
+                    .setBackOff(new ExponentialBackOff())
+                    .setSelectedAccountName(new AuthPreferences(context).getUser());
 
-        HttpTransport transport = new NetHttpTransport();
-        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-        return new Sheets.Builder(
-                transport, jsonFactory, credential).setApplicationName(context.getString(R.string.app_name)).build();
+            HttpTransport transport = new NetHttpTransport();
+            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+            Sheets sheetsApi = new Sheets.Builder(transport, jsonFactory, credential).setApplicationName(context.getString(R.string.app_name)).build();
+            instance = new SheetsProvider(sheetsApi);
+        } else {
+            HyperLog.v(TAG, "Return existing singleton instance ...");
+        }
+        return instance;
     }
 
-    public synchronized void insertWithRetry(String spreadsheetId, int sheetId, CharSequence timestamp,
-                                             boolean device8HasValue, String device8Value,
-                                             boolean device9HasValue, String device9Value,
-                                             boolean device10HasValue, String device10Value,
-                                             boolean outsideHasValue, String outsideValue) throws IOException {
+    public synchronized void insertSamplesWithRetry(String spreadsheetId, int sheetId, CharSequence timestamp,
+                                                    boolean device8HasValue, String device8Value,
+                                                    boolean device9HasValue, String device9Value,
+                                                    boolean device10HasValue, String device10Value,
+                                                    boolean outsideHasValue, String outsideValue) throws IOException {
         ArrayList<String> exceptionMessages = new ArrayList<>();
         int tries = 0;
-        while (tries < 4) {
+        int maxTries = 3;
+        while (tries <= 3) {
             tries++;
             try {
-                insert(spreadsheetId, sheetId, timestamp,
+                insertSamples(spreadsheetId, sheetId, timestamp,
                         device8HasValue, device8Value,
                         device9HasValue, device9Value,
                         device10HasValue, device10Value,
                         outsideHasValue, outsideValue);
                 return;
             } catch (IOException e) {
+                HyperLog.w(TAG, tries + "/" + maxTries + ": Failed to insert sample.", e);
                 exceptionMessages.add(e.getMessage());
                 try {
                     Thread.sleep(500);
@@ -79,11 +106,11 @@ public class RecordedDataManager {
                 "\n Exceptions: " + String.join("\n", exceptionMessages));
     }
 
-    private void insert(String spreadsheetId, int sheetId, CharSequence timestamp,
-                        boolean device8HasValue, String device8Value,
-                        boolean device9HasValue, String device9Value,
-                        boolean device10HasValue, String device10Value,
-                        boolean outsideHasValue, String outsideValue) throws IOException {
+    private void insertSamples(String spreadsheetId, int sheetId, CharSequence timestamp,
+                               boolean device8HasValue, String device8Value,
+                               boolean device9HasValue, String device9Value,
+                               boolean device10HasValue, String device10Value,
+                               boolean outsideHasValue, String outsideValue) throws IOException {
 
         String delimiter = ";;";
         List<String> dataList = Arrays.asList(
@@ -105,29 +132,31 @@ public class RecordedDataManager {
         ));
 
         BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-        HyperLog.d(TAG, "Insert new data response: " + response.toPrettyString());
+        HyperLog.d(TAG, "Inserted new samples data. Response: " + response.toPrettyString());
     }
 
     public synchronized float queryAvg(String spreadsheetId) throws IOException {
         String range = "Average!F2:F2";
         ValueRange response = sheetsApi.spreadsheets().values().get(spreadsheetId, range).execute();
-        HyperLog.d(TAG, "Read average response: " + response.toPrettyString());
+        HyperLog.d(TAG, "Read average. Response: " + response.toPrettyString());
 
         String avg = (String) response.getValues().get(0).get(0);
         return Float.parseFloat(avg);
     }
 
-    public void insertWithRetry(String spreadsheetId, int sheetId, List<String> logs) throws IOException {
+    public synchronized void insertLogsWithRetry(String spreadsheetId, int sheetId, List<String> logs) throws IOException {
         if (logs.isEmpty()) return;
 
         ArrayList<String> exceptionMessages = new ArrayList<>();
         int tries = 0;
-        while (tries < 4) {
+        int maxTries = 3;
+        while (tries <= 3) {
             tries++;
             try {
-                insert(spreadsheetId, sheetId, logs);
+                insertLogs(spreadsheetId, sheetId, logs);
                 return;
             } catch (IOException e) {
+                HyperLog.w(TAG, tries + "/" + maxTries + ": Failed to insert logs.", e);
                 exceptionMessages.add(e.getMessage());
                 try {
                     Thread.sleep(500);
@@ -140,14 +169,13 @@ public class RecordedDataManager {
                 "\n Exceptions: " + String.join("\n", exceptionMessages));
     }
 
-    private void insert(String spreadsheetId, int sheetId, List<String> logs) throws IOException {
+    private void insertLogs(String spreadsheetId, int sheetId, List<String> logs) throws IOException {
 
         InsertDimensionRequest insertRowReq = new InsertDimensionRequest();
         insertRowReq.setRange(new DimensionRange().setDimension("ROWS").setStartIndex(0).setEndIndex(logs.size()).setSheetId(sheetId));
 
         // PasteDataRequest is a hack to insert new row AND update data with one request
-        String delimiter = "\n";
-        PasteDataRequest pasteDataReq = new PasteDataRequest().setData(String.join(delimiter, logs)).setDelimiter(delimiter)
+        PasteDataRequest pasteDataReq = new PasteDataRequest().setData(String.join(LOGS_DELIMITER, logs)).setDelimiter(LOGS_DELIMITER)
                 .setCoordinate(new GridCoordinate().setColumnIndex(0).setRowIndex(0).setSheetId(sheetId));
 
         final int maxLogEntries = 20000;
@@ -161,6 +189,6 @@ public class RecordedDataManager {
         ));
 
         BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-        HyperLog.d(TAG, "Insert logs data response: " + response.toPrettyString());
+        HyperLog.d(TAG, "Inserted new logs data. Response: " + response.toPrettyString());
     }
 }

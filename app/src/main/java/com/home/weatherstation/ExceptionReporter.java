@@ -20,7 +20,11 @@ public class ExceptionReporter {
     }
 
     public void sendException(final Context context, final Throwable t) {
-        t.printStackTrace();
+        sendException(context, t, "", "");
+    }
+
+    public void sendException(final Context context, final Throwable t, final String logTag, final String logMessage) {
+        HyperLog.e(logTag, logMessage, t);
 
         // Since the following uploads the exceptions only on app-relaunch, we simply send an email instead
 //        fc.recordException(t);

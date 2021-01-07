@@ -15,6 +15,8 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.util.ExponentialBackOff;
+import com.home.weatherstation.remote.SheetsProvider;
+import com.home.weatherstation.util.AndroidPermissions;
 import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
@@ -41,7 +43,7 @@ public class AuthActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         credential = GoogleAccountCredential.usingOAuth2(
-                getApplicationContext(), Arrays.asList(RecordedDataManager.SCOPES))
+                getApplicationContext(), Arrays.asList(SheetsProvider.SCOPES))
                 .setBackOff(new ExponentialBackOff());
 
         authPreferences = new AuthPreferences(this);

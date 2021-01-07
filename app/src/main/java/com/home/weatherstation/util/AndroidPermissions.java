@@ -1,4 +1,4 @@
-package com.home.weatherstation;
+package com.home.weatherstation.util;
 
 /**
  * Created by dominic on 09.07.17.

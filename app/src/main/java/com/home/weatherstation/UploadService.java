@@ -5,9 +5,10 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
 
+import com.home.weatherstation.remote.LogsRecorder;
+import com.home.weatherstation.remote.SamplesRecorder;
 import com.home.weatherstation.smn.SmnData;
 import com.home.weatherstation.smn.SmnRecord;
-import com.hypertrack.hyperlog.DeviceLogModel;
 import com.hypertrack.hyperlog.HyperLog;
 
 import org.apache.commons.io.IOUtils;
@@ -19,12 +20,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -38,7 +36,6 @@ public class UploadService extends IntentService {
 
     private static final String TAG = UploadService.class.getSimpleName();
 
-
     private static final String ACTION_UPLOAD = "com.home.weatherstation.action.upload";
     private static final String ACTION_CHECK_THRESHOLDS = "com.home.weatherstation.action.checkthresholds";
     private static final String ACTION_PUBLISH_LOGS = "com.home.weatherstation.action.publishlogs";
@@ -49,21 +46,7 @@ public class UploadService extends IntentService {
     private static final String EXTRA_SAMPLE_DEVICE10 = "com.home.weatherstation.extra.sampledevice10";
     private static final String EXTRA_ALERTING_CONFIG = "com.home.weatherstation.extra.config";
 
-    private static final String TEMPERATURE_SPREADSHEET_ID = "1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0";
-    private static final String HUMIDITY_SPREADSHEET_ID = "1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4";
-    private static final String BATTERY_SPREADSHEET_ID = "1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk";
-    private static final int TEMPERATURE_DATA_SHEET_ID = 1714261182;
-    private static final int HUMIDITY_DATA_SHEET_ID = 1714261182;
-    private static final int BATTERY_DATA_SHEET_ID = 1714261182;
-
-    private static final String CONFIG_AND_LOGS_SPREADSHEET_ID = "170j9y4aZxPRHIUCS5WqqtaF60wLBi1iroIF7gXUUgW0";
-    private static final int LOGS_SHEET_ID = 767230915;
-
-
     private static final String OPEN_DATA_URL = "https://data.geo.admin.ch/ch.meteoschweiz.messwerte-aktuell/VQHA80.csv";
-    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.0");
-
-    RecordedDataManager recordedDataManager;
 
     public UploadService() {
         super("UploadService");
@@ -132,85 +115,60 @@ public class UploadService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        recordedDataManager = new RecordedDataManager(RecordedDataManager.getSheetsApi(getApplicationContext()));
-
         if (intent != null) {
+            HyperLog.d(TAG, "onHandleIntent ACTION = " + intent.getAction());
 
-            HyperLog.v(TAG, "onHandleIntent ACTION = " + intent.getAction());
-
-            ServiceHelper serviceHelper = new ServiceHelper();
-
-            startForeground(ID_SERVICE, serviceHelper.createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
+            startForeground(ID_SERVICE, new ServiceHelper().createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
 
             final String action = intent.getAction();
+
             if (ACTION_UPLOAD.equals(action)) {
                 final Date timestamp = new Date(intent.getLongExtra(EXTRA_TIMESTAMP, System.currentTimeMillis()));
                 final Sample sampleDevice8 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE8);
                 final Sample sampleDevice9 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE9);
                 final Sample sampleDevice10 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE10);
                 final Sample sampleOutside = fetchCurrentConditionsOutsideOpenDataDirectly(this);
-                HyperLog.i(TAG, "" + sampleOutside);
                 upload(timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
+
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
                 checkThresholds((AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
+
             } else if (ACTION_PUBLISH_LOGS.equals(action)) {
+                uploadLogs();
 
-                //TODO Define when to upload logs (once a day + from WEB UI)
-                //TODO Fix Timezone in timestamp (optional)
-                //TODO Refactor RecordedDataManager (SheetsProvider used by RemoteDataRecorder + RemoteLogsRecorder)
-                //TODO Refactor logs and log levels
-
-                // TODO Move this closer to where \n is used as delimiter (LogsRecorder?)
-                final List<DeviceLogModel> deviceLogs = HyperLog.getDeviceLogs(true);
-                final List<String> reversedAndEscapedLogs = new ArrayList<>();
-                for (DeviceLogModel logEntry : deviceLogs) {
-                    reversedAndEscapedLogs.add(0, logEntry.getDeviceLog().replace("\n", " \\ "));
-                }
-
-                try {
-                    recordedDataManager.insertWithRetry(CONFIG_AND_LOGS_SPREADSHEET_ID, LOGS_SHEET_ID, reversedAndEscapedLogs);
-                } catch (IOException e) {
-                    new ExceptionReporter().sendException(this, e);
-                }
             } else {
                 HyperLog.w(TAG, "Unknown action: " + action);
             }
+        } else {
+            HyperLog.w(TAG, "onHandleIntent Intent is null");
         }
     }
 
     private void upload(Date timestamp, Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
-
-        CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
-
         try {
-            recordedDataManager.insertWithRetry(TEMPERATURE_SPREADSHEET_ID, TEMPERATURE_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo8.getTemperature()), deviceNo9.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo9.getTemperature()), deviceNo10.hasTempCurrent(), DECIMAL_FORMAT.format(deviceNo10.getTemperature()), sampleOutside.hasTempCurrent(), DECIMAL_FORMAT.format(sampleOutside.getTemperature()));
+            new SamplesRecorder(this).record(timestamp, deviceNo8, deviceNo9, deviceNo10, sampleOutside);
             Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
+        } catch (Exception e) {
+            new ExceptionReporter().sendException(this, e);
+        }
+    }
+
+    private void uploadLogs() {
+        try {
+            new LogsRecorder(this).record();
         } catch (IOException e) {
             new ExceptionReporter().sendException(this, e);
         }
-
-        try {
-            recordedDataManager.insertWithRetry(HUMIDITY_SPREADSHEET_ID, HUMIDITY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasRelativeHumidity(), String.valueOf(deviceNo8.getRelativeHumidity()), deviceNo9.hasRelativeHumidity(), String.valueOf(deviceNo9.getRelativeHumidity()), deviceNo10.hasRelativeHumidity(), String.valueOf(deviceNo10.getRelativeHumidity()), sampleOutside.hasRelativeHumidity(), String.valueOf(sampleOutside.getRelativeHumidity()));
-            Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
-        } catch (IOException e) {
-            new ExceptionReporter().sendException(this, e);
-        }
-
-        try {
-            recordedDataManager.insertWithRetry(BATTERY_SPREADSHEET_ID, BATTERY_DATA_SHEET_ID, timestampValue.toString(), deviceNo8.hasBatteryLevelCurrent(), String.valueOf(deviceNo8.getBatteryLevel()), deviceNo9.hasBatteryLevelCurrent(), String.valueOf(deviceNo9.getBatteryLevel()), deviceNo10.hasBatteryLevelCurrent(), String.valueOf(deviceNo10.getBatteryLevel()), sampleOutside.hasBatteryLevelCurrent(), String.valueOf(sampleOutside.getBatteryLevel()));
-            Storage.storeLastUploadTime(getBaseContext(), System.currentTimeMillis());
-        } catch (IOException e) {
-            new ExceptionReporter().sendException(this, e);
-        }
-
     }
 
     private static Sample fetchCurrentConditionsOutsideOpenDataDirectly(Context context) {
+        HyperLog.d(TAG, "Fetching Outside Conditions ...");
+
         try {
             URL url = new URL(OPEN_DATA_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            HyperLog.v(TAG, "Fetch Outside Conditions - Response Code: " + conn.getResponseCode());
+            HyperLog.d(TAG, "Fetch Outside Conditions - Response Code: " + conn.getResponseCode());
             InputStream in = new BufferedInputStream(conn.getInputStream(), 1024);
             String response = IOUtils.toString(in, StandardCharsets.UTF_8);
 
@@ -222,7 +180,7 @@ public class UploadService extends IntentService {
 
             return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
         } catch (Exception e) {
-            new ExceptionReporter().sendException(context, e);
+            new ExceptionReporter().sendException(context, e, TAG, "Failed to fetch Outside Conditions.");
             return getSample("Outside", null);
         }
     }
@@ -243,7 +201,7 @@ public class UploadService extends IntentService {
         int lastXdays = -4; // should be fetched from Sheets (or maybe sheets should trigger this email altogether)
 
         try {
-            float averageHum = recordedDataManager.queryAvg(HUMIDITY_SPREADSHEET_ID);
+            float averageHum = new SamplesRecorder(this).queryAvgHumidity();
 
             long thresholdExceededHumidityFromStorage = Storage.readThresholdExceededHumidity(this);
 
@@ -267,6 +225,5 @@ public class UploadService extends IntentService {
             new ExceptionReporter().sendException(this, e);
         }
     }
-
 
 }
