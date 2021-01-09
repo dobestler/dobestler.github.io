@@ -22,6 +22,7 @@ import com.google.api.services.sheets.v4.model.Request;
 import com.google.api.services.sheets.v4.model.ValueRange;
 import com.home.weatherstation.AuthPreferences;
 import com.home.weatherstation.R;
+import com.home.weatherstation.util.MyLog;
 import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
@@ -59,7 +60,7 @@ public class SheetsProvider {
 
     public static synchronized SheetsProvider getInstance(Context context) {
         if (instance == null) {
-            HyperLog.v(TAG, "Creating new singleton instance ...");
+            MyLog.v(TAG, "Creating new singleton instance ...");
             GoogleAccountCredential credential = GoogleAccountCredential.usingOAuth2(
                     context, Arrays.asList(SCOPES))
                     .setBackOff(new ExponentialBackOff())
@@ -70,7 +71,7 @@ public class SheetsProvider {
             Sheets sheetsApi = new Sheets.Builder(transport, jsonFactory, credential).setApplicationName(context.getString(R.string.app_name)).build();
             instance = new SheetsProvider(sheetsApi);
         } else {
-            HyperLog.v(TAG, "Return existing singleton instance ...");
+            MyLog.v(TAG, "Return existing singleton instance ...");
         }
         return instance;
     }
@@ -93,12 +94,12 @@ public class SheetsProvider {
                         outsideHasValue, outsideValue);
                 return;
             } catch (IOException e) {
-                HyperLog.w(TAG, tries + "/" + maxTries + ": Failed to insert sample.", e);
+                MyLog.w(TAG, tries + "/" + maxTries + ": Failed to insert sample.", e);
                 exceptionMessages.add(e.getMessage());
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e1) {
-                    HyperLog.e(TAG, "Could not sleep", e1);
+                    MyLog.e(TAG, "Could not sleep", e1);
                 }
             }
         }
@@ -132,13 +133,13 @@ public class SheetsProvider {
         ));
 
         BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-        HyperLog.d(TAG, "Inserted new samples data. Response: " + response.toPrettyString());
+        MyLog.d(TAG, "Inserted new samples data. Response: " + response.toPrettyString());
     }
 
     public synchronized float queryAvg(String spreadsheetId) throws IOException {
         String range = "Average!F2:F2";
         ValueRange response = sheetsApi.spreadsheets().values().get(spreadsheetId, range).execute();
-        HyperLog.d(TAG, "Read average. Response: " + response.toPrettyString());
+        MyLog.d(TAG, "Read average. Response: " + response.toPrettyString());
 
         String avg = (String) response.getValues().get(0).get(0);
         return Float.parseFloat(avg);
@@ -156,12 +157,12 @@ public class SheetsProvider {
                 insertLogs(spreadsheetId, sheetId, logs);
                 return;
             } catch (IOException e) {
-                HyperLog.w(TAG, tries + "/" + maxTries + ": Failed to insert logs.", e);
+                MyLog.w(TAG, tries + "/" + maxTries + ": Failed to insert logs.", e);
                 exceptionMessages.add(e.getMessage());
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e1) {
-                    HyperLog.e(TAG, "Could not sleep", e1);
+                    MyLog.e(TAG, "Could not sleep", e1);
                 }
             }
         }
@@ -189,6 +190,6 @@ public class SheetsProvider {
         ));
 
         BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
-        HyperLog.d(TAG, "Inserted new logs data. Response: " + response.toPrettyString());
+        MyLog.d(TAG, "Inserted new logs data. Response: " + response.toPrettyString());
     }
 }

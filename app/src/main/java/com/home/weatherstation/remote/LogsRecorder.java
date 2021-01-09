@@ -2,6 +2,7 @@ package com.home.weatherstation.remote;
 
 import android.content.Context;
 
+import com.home.weatherstation.util.MyLog;
 import com.hypertrack.hyperlog.DeviceLogModel;
 import com.hypertrack.hyperlog.HyperLog;
 
@@ -20,7 +21,7 @@ public class LogsRecorder {
     }
 
     public void record() throws IOException {
-        HyperLog.i(TAG, "Recording logs ...");
+        MyLog.i(TAG, "Recording logs ...");
 
         final List<String> reversedAndEscapedLogs = new ArrayList<>();
         final List<DeviceLogModel> deviceLogs = HyperLog.getDeviceLogs(true);

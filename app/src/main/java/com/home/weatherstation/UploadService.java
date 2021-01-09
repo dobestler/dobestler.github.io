@@ -9,7 +9,7 @@ import com.home.weatherstation.remote.LogsRecorder;
 import com.home.weatherstation.remote.SamplesRecorder;
 import com.home.weatherstation.smn.SmnData;
 import com.home.weatherstation.smn.SmnRecord;
-import com.hypertrack.hyperlog.HyperLog;
+import com.home.weatherstation.util.MyLog;
 
 import org.apache.commons.io.IOUtils;
 
@@ -91,7 +91,7 @@ public class UploadService extends IntentService {
      */
     public static Intent buildStartUploadIntent(final Context context, final Date timestamp, final Sample sampleDeviceNo8, final Sample sampleDeviceNo9, final Sample sampleDeviceNo10) {
         if (sampleDeviceNo8 == null && sampleDeviceNo9 == null && sampleDeviceNo10 == null) {
-            HyperLog.w(TAG, "Not starting upload because all samples are null");
+            MyLog.w(TAG, "Not starting upload because all samples are null");
             return null;
         }
 
@@ -116,7 +116,7 @@ public class UploadService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
-            HyperLog.d(TAG, "onHandleIntent ACTION = " + intent.getAction());
+            MyLog.d(TAG, "onHandleIntent ACTION = " + intent.getAction());
 
             startForeground(ID_SERVICE, new ServiceHelper().createNotification(this, NotificationManager.IMPORTANCE_NONE, "Uploading samples ...", false));
 
@@ -137,10 +137,10 @@ public class UploadService extends IntentService {
                 uploadLogs();
 
             } else {
-                HyperLog.w(TAG, "Unknown action: " + action);
+                MyLog.w(TAG, "Unknown action: " + action);
             }
         } else {
-            HyperLog.w(TAG, "onHandleIntent Intent is null");
+            MyLog.w(TAG, "onHandleIntent Intent is null");
         }
     }
 
@@ -162,13 +162,13 @@ public class UploadService extends IntentService {
     }
 
     private static Sample fetchCurrentConditionsOutsideOpenDataDirectly(Context context) {
-        HyperLog.d(TAG, "Fetching Outside Conditions ...");
+        MyLog.d(TAG, "Fetching Outside Conditions ...");
 
         try {
             URL url = new URL(OPEN_DATA_URL);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
-            HyperLog.d(TAG, "Fetch Outside Conditions - Response Code: " + conn.getResponseCode());
+            MyLog.d(TAG, "Fetch Outside Conditions - Response Code: " + conn.getResponseCode());
             InputStream in = new BufferedInputStream(conn.getInputStream(), 1024);
             String response = IOUtils.toString(in, StandardCharsets.UTF_8);
 
@@ -220,7 +220,7 @@ public class UploadService extends IntentService {
                 Storage.removeThresholdExceededHumidity(this);
             }
         } catch (NumberFormatException e) {
-            HyperLog.w(TAG, "Not enough data to calculate 4d average -> 'n/a' instead of float");
+            MyLog.w(TAG, "Not enough data to calculate 4d average -> 'n/a' instead of float");
         } catch (IOException e) {
             new ExceptionReporter().sendException(this, e);
         }

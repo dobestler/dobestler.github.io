@@ -3,7 +3,7 @@ package com.home.weatherstation;
 import android.content.Context;
 
 import com.creativityapps.gmailbackgroundlibrary.BackgroundMail;
-import com.hypertrack.hyperlog.HyperLog;
+import com.home.weatherstation.util.MyLog;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -24,7 +24,7 @@ public class ExceptionReporter {
     }
 
     public void sendException(final Context context, final Throwable t, final String logTag, final String logMessage) {
-        HyperLog.e(logTag, logMessage, t);
+        MyLog.e(logTag, logMessage, t);
 
         // Since the following uploads the exceptions only on app-relaunch, we simply send an email instead
 //        fc.recordException(t);
@@ -42,7 +42,7 @@ public class ExceptionReporter {
     }
 
     public void sendIncompleteScansAlert(final Context context, long numberOfIncompleteScans, Sample deviceNr8, Sample deviceNr9, Sample deviceNr10) {
-        HyperLog.i(TAG, "Sending incomplete scan alert email...");
+        MyLog.i(TAG, "Sending incomplete scan alert email...");
         String body1 = String.format(Locale.getDefault(), "%d incomplete scans in a row!", numberOfIncompleteScans);
         String body2 = deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10;
         BackgroundMail.newBuilder(context)
@@ -58,7 +58,7 @@ public class ExceptionReporter {
 
     public void sendThresholdRecoveredAlert(final Context context, double recoveringValue,
                                             int lastXdays, float lowerThreshold, float upperThreshold) {
-        HyperLog.i(TAG, "Sending Threshold Recovered alert email...");
+        MyLog.i(TAG, "Sending Threshold Recovered alert email...");
         String subject = String.format("%s Alert: %s threshold recovered", context.getString(R.string.app_name), "Humidity");
         String body = String.format(Locale.getDefault(), "Measured avg. for the last %d days = %s \n" +
                 "Lower threshold = %s\n" +
@@ -68,7 +68,7 @@ public class ExceptionReporter {
 
     public void sendThresholdExceededAlert(final Context context, double exceedingValue,
                                            int lastXdays, float lowerThreshold, float upperThreshold) {
-        HyperLog.i(TAG, "Sending Threshold Exceeded alert email...");
+        MyLog.i(TAG, "Sending Threshold Exceeded alert email...");
         String subject = String.format("%s Alert: %s threshold exceeded", context.getString(R.string.app_name), "Humidity");
         String body = String.format(Locale.getDefault(), "Measured avg. for the last %d days = %s \n" +
                 "Lower threshold = %s\n" +

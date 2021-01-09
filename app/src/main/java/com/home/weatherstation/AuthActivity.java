@@ -17,7 +17,7 @@ import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccoun
 import com.google.api.client.util.ExponentialBackOff;
 import com.home.weatherstation.remote.SheetsProvider;
 import com.home.weatherstation.util.AndroidPermissions;
-import com.hypertrack.hyperlog.HyperLog;
+import com.home.weatherstation.util.MyLog;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -64,7 +64,7 @@ public class AuthActivity extends Activity {
         if (mPermissions.checkPermissions()) {
             doStart();
         } else {
-            HyperLog.d(TAG, "Some needed permissions are missing. Requesting them.");
+            MyLog.d(TAG, "Some needed permissions are missing. Requesting them.");
             mPermissions.requestPermissions(PERMISSIONS_REQUEST_CODE);
         }
     }
@@ -73,7 +73,7 @@ public class AuthActivity extends Activity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-        HyperLog.d(TAG, "onRequestPermissionsResult");
+        MyLog.d(TAG, "onRequestPermissionsResult");
 
         if (mPermissions.areAllRequiredPermissionsGranted(permissions, grantResults)) {
             doStart();
@@ -94,7 +94,7 @@ public class AuthActivity extends Activity {
     }
 
     private void showError(String message) {
-        HyperLog.e(TAG, message);
+        MyLog.e(TAG, message);
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
@@ -193,7 +193,7 @@ public class AuthActivity extends Activity {
         protected String doInBackground(Void... params) {
             try {
                 String oauthToken = credential.getToken();
-                HyperLog.d(TAG, "Acquired token " + oauthToken);
+                MyLog.d(TAG, "Acquired token " + oauthToken);
                 return oauthToken;
             } catch (UserRecoverableAuthException e) {
                 // Requesting an authorization code will always throw

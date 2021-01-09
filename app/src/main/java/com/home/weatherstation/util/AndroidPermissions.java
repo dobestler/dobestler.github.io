@@ -68,7 +68,7 @@ public class AndroidPermissions {
             log.append(permission).append("\n");
         }
 
-        HyperLog.i(getClass().getSimpleName(), log.toString());
+        MyLog.i(getClass().getSimpleName(), log.toString());
 
         ActivityCompat.requestPermissions(mContext, request, requestCode);
     }

@@ -7,7 +7,7 @@ import com.home.weatherstation.ScannerService;
 import com.home.weatherstation.ServiceHelper;
 import com.home.weatherstation.Storage;
 import com.home.weatherstation.UploadService;
-import com.hypertrack.hyperlog.HyperLog;
+import com.home.weatherstation.util.MyLog;
 
 import androidx.annotation.NonNull;
 
@@ -34,25 +34,25 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                     return a;
                 }
             }
-            HyperLog.w(TAG, "Unknown action: " + action);
+            MyLog.w(TAG, "Unknown action: " + action);
             return null;
         }
     }
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
-        HyperLog.i(TAG, "onMessageReceived from " + remoteMessage.getFrom() + " : " + remoteMessage.getData());
+        MyLog.i(TAG, "onMessageReceived from " + remoteMessage.getFrom() + " : " + remoteMessage.getData());
 
         if (remoteMessage.getData().size() > 0) {
             execute(ACTION.get(remoteMessage.getData().get("action")));
         } else {
-            HyperLog.w(TAG, "Missing data");
+            MyLog.w(TAG, "Missing data");
         }
     }
 
     @Override
     public void onNewToken(@NonNull String s) {
-        HyperLog.d(TAG, "onNewToken");
+        MyLog.d(TAG, "onNewToken");
         super.onNewToken(s);
     }
 

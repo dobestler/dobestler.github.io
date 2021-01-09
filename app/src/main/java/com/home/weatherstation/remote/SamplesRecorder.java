@@ -3,6 +3,7 @@ package com.home.weatherstation.remote;
 import android.content.Context;
 
 import com.home.weatherstation.Sample;
+import com.home.weatherstation.util.MyLog;
 import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
@@ -21,7 +22,7 @@ public class SamplesRecorder {
     public void record(Date timestamp, Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample outside) throws IOException {
         CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
 
-        HyperLog.i(TAG, "Recording TEMPERATURE samples ...");
+        MyLog.i(TAG, "Recording TEMPERATURE samples ...");
         sheetsProvider.insertSamplesWithRetry(
                 SheetsProvider.TEMPERATURE_SPREADSHEET_ID,
                 SheetsProvider.TEMPERATURE_DATA_SHEET_ID,
@@ -31,7 +32,7 @@ public class SamplesRecorder {
                 deviceNo10.hasTempCurrent(), SheetsProvider.DECIMAL_FORMAT.format(deviceNo10.getTemperature()),
                 outside.hasTempCurrent(), SheetsProvider.DECIMAL_FORMAT.format(outside.getTemperature()));
 
-        HyperLog.i(TAG, "Recording HUMIDITY samples ...");
+        MyLog.i(TAG, "Recording HUMIDITY samples ...");
         sheetsProvider.insertSamplesWithRetry(
                 SheetsProvider.HUMIDITY_SPREADSHEET_ID,
                 SheetsProvider.HUMIDITY_DATA_SHEET_ID,
@@ -41,7 +42,7 @@ public class SamplesRecorder {
                 deviceNo10.hasRelativeHumidity(), String.valueOf(deviceNo10.getRelativeHumidity()),
                 outside.hasRelativeHumidity(), String.valueOf(outside.getRelativeHumidity()));
 
-        HyperLog.i(TAG, "Recording BATTERY samples ...");
+        MyLog.i(TAG, "Recording BATTERY samples ...");
         sheetsProvider.insertSamplesWithRetry(
                 SheetsProvider.BATTERY_SPREADSHEET_ID,
                 SheetsProvider.BATTERY_DATA_SHEET_ID,
@@ -53,7 +54,7 @@ public class SamplesRecorder {
     }
 
     public float queryAvgHumidity() throws IOException {
-        HyperLog.i(TAG, "Reading average humidity data ...");
+        MyLog.i(TAG, "Reading average humidity data ...");
         return sheetsProvider.queryAvg(SheetsProvider.HUMIDITY_SPREADSHEET_ID);
     }
 }
