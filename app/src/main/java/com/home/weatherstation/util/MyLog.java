@@ -8,7 +8,7 @@ import com.hypertrack.hyperlog.HyperLog;
  * HACK
  * This class only exists to ensure the minimum log level because HyperLog sends all logs and even
  * sets the wrong level: See how @{@link HyperLog#v(String, String)} properly logs but then stores
- * the initialized static loglevel to the database => r(getFormattedLog(logLevel, tag, message));
+ * the initialized static logLevel to the database => r(getFormattedLog(logLevel, tag, message));
  * instead of the respective log level of the called method, i.e. for v(...) it should be
  * r(getFormattedLog(Log.VERBOSE, tag, message));
  */
