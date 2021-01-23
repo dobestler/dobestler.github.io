@@ -1,13 +1,7 @@
 package com.home.weatherstation.util;
 
-/**
- * Created by dominic on 09.07.17.
- */
-
 import android.app.Activity;
 import android.content.pm.PackageManager;
-
-import com.hypertrack.hyperlog.HyperLog;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

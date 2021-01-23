@@ -12,10 +12,9 @@ import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.SheetsScopes;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetRequest;
 import com.google.api.services.sheets.v4.model.BatchUpdateSpreadsheetResponse;
-import com.google.api.services.sheets.v4.model.DeleteRangeRequest;
+import com.google.api.services.sheets.v4.model.DeleteDimensionRequest;
 import com.google.api.services.sheets.v4.model.DimensionRange;
 import com.google.api.services.sheets.v4.model.GridCoordinate;
-import com.google.api.services.sheets.v4.model.GridRange;
 import com.google.api.services.sheets.v4.model.InsertDimensionRequest;
 import com.google.api.services.sheets.v4.model.PasteDataRequest;
 import com.google.api.services.sheets.v4.model.Request;
@@ -23,7 +22,6 @@ import com.google.api.services.sheets.v4.model.ValueRange;
 import com.home.weatherstation.AuthPreferences;
 import com.home.weatherstation.R;
 import com.home.weatherstation.util.MyLog;
-import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
@@ -173,20 +171,32 @@ public class SheetsProvider {
     private void insertLogs(String spreadsheetId, int sheetId, List<String> logs) throws IOException {
 
         InsertDimensionRequest insertRowReq = new InsertDimensionRequest();
-        insertRowReq.setRange(new DimensionRange().setDimension("ROWS").setStartIndex(0).setEndIndex(logs.size()).setSheetId(sheetId));
+        insertRowReq.setRange(new DimensionRange()
+                .setDimension("ROWS")
+                .setStartIndex(0)
+                .setEndIndex(logs.size())
+                .setSheetId(sheetId));
 
         // PasteDataRequest is a hack to insert new row AND update data with one request
-        PasteDataRequest pasteDataReq = new PasteDataRequest().setData(String.join(LOGS_DELIMITER, logs)).setDelimiter(LOGS_DELIMITER)
-                .setCoordinate(new GridCoordinate().setColumnIndex(0).setRowIndex(0).setSheetId(sheetId));
+        PasteDataRequest pasteDataReq = new PasteDataRequest()
+                .setData(String.join(LOGS_DELIMITER, logs))
+                .setDelimiter(LOGS_DELIMITER)
+                .setCoordinate(new GridCoordinate()
+                        .setColumnIndex(0)
+                        .setRowIndex(0)
+                        .setSheetId(sheetId));
 
         final int maxLogEntries = 20000;
-        DeleteRangeRequest deleteRangeRequest = new DeleteRangeRequest();
-        deleteRangeRequest.setRange(new GridRange().setStartRowIndex(maxLogEntries).setSheetId(sheetId)).setShiftDimension("ROWS");
+        DeleteDimensionRequest deleteDimensionRequest = new DeleteDimensionRequest();
+        deleteDimensionRequest.setRange(new DimensionRange()
+                .setDimension("ROWS")
+                .setStartIndex(maxLogEntries)
+                .setSheetId(sheetId));
 
         BatchUpdateSpreadsheetRequest batchUpdateSpreadsheetRequest = new BatchUpdateSpreadsheetRequest().setRequests(Arrays.asList(
                 new Request().setInsertDimension(insertRowReq),
                 new Request().setPasteData(pasteDataReq),
-                new Request().setDeleteRange(deleteRangeRequest)
+                new Request().setDeleteDimension(deleteDimensionRequest)
         ));
 
         BatchUpdateSpreadsheetResponse response = sheetsApi.spreadsheets().batchUpdate(spreadsheetId, batchUpdateSpreadsheetRequest).execute();
