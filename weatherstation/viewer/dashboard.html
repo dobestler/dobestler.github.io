@@ -288,7 +288,7 @@
                 endDate: end,
                 ranges: {
                    'Last 24h': [moment().subtract(24, 'hours'), moment()],
-                   'Last 2 Days': [moment().subtract(2, 'days'), moment()],
+                   'Last 2 Days': [moment().subtract(48, 'hours'), moment()],
                    'Last 3 Days': [moment().subtract(3, 'days'), moment()],
                    'Last 7 Days': [moment().subtract(7, 'days'), moment()],
                    'Last 30 Days': [moment().subtract(30, 'days'), moment()],
@@ -392,6 +392,7 @@
                 }
             });
         }
+
 
 
 
@@ -575,6 +576,7 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
+
 
 
 
