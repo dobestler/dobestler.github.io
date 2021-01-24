@@ -291,7 +291,7 @@
                    'Last 3 Days': [moment().subtract(3, 'days').startOf('day'), moment()],
                    'Last 7 Days': [moment().subtract(7, 'days').startOf('day'), moment()],
                    'Last 30 Days': [moment().subtract(30, 'days').startOf('day'), moment()],
-                   'All time': [moment().subtract(4, 'years'), moment()]
+                   'All time': [moment('2016-07-07'), moment()]
                 }
             }, cb);
 
@@ -391,6 +391,7 @@
                 }
             });
         }
+
 
 
     </script>
@@ -572,6 +573,7 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
+
 
 
 
