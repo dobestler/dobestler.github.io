@@ -40,9 +40,11 @@
         var spreadsheetIdTemperature = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
         var spreadsheetIdHumidity = '1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4';
         var spreadsheetIdBattery = '1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk';
+        var spreadsheetIdPrecipitation = '1hXvcWWTWgMiXYH4mFiLUIuAvt-Y8llF7W8hnBkKd5jU';
         var sheetIdTemperatureData = '1714261182';
         var sheetIdHumidityData = '1714261182';
         var sheetIdBatteryData = '1714261182';
+        var sheetIdPrecipitationData = '1714261182';
 
         var start = moment().subtract(1, 'days');
         var end = moment();
@@ -66,7 +68,10 @@
                     spreadSheetId = spreadsheetIdHumidity;
                     sheetId = sheetIdHumidityData;
                     break;
-                case 'Pressure':
+                case 'Precipitation':
+                    spreadSheetId = spreadsheetIdPrecipitation;
+                    sheetId = sheetIdPrecipitationData;
+                    break;
                 case 'Temperature':
                     spreadSheetId = spreadsheetIdTemperature;
                     sheetId = sheetIdTemperatureData;
@@ -83,7 +88,7 @@
                 " ORDER BY A DESC";
 
             var url = "https://docs.google.com/spreadsheets/d/" + spreadSheetId + "/gviz/tq?gid=" + sheetId + "&headers=1&key=" + API_KEY + "&tq=";
-            //console.log(url + encodeURIComponent(query));
+            console.log(url + encodeURIComponent(query));
 
             var q = new google.visualization.Query(url + encodeURIComponent(query));
             q.send(handleChartQueryResponse);
@@ -119,8 +124,10 @@
 
             //
             var chart = new google.visualization.LineChart(document.getElementById('visualization_chart_div'));
+            datatype = document.getElementById('datatype').value;
+            unit = getUnitFor(datatype);
             var options = {
-                title: document.getElementById('datatype').value + ' data',
+                title: datatype + ' data (' + unit + ')' ,
                 legend: {
                     position: 'bottom'
                 },
@@ -265,8 +272,8 @@
                     return '°C';
                 case 'Battery':
                     return '%';
-                case 'Pressure':
-                    return 'n/a';
+                case 'Precipitation':
+                    return 'mm';
             }
         }
 
@@ -397,6 +404,9 @@
 
 
 
+
+
+
     </script>
 
 </head>
@@ -486,7 +496,7 @@
                             onchange="queryMostRecent(); updateDateRangePicker();">
                         <option value="Temperature" selected="selected">Temperature</option>
                         <option value="Humidity">Humidity</option>
-                        <!--<option value="Pressure">Pressure</option>-->
+                        <option value="Precipitation">Precipitation</option>
                         <option value="Battery">Battery</option>
                     </select>
                 </div>
@@ -576,14 +586,6 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
-
-
-
-
-
-
-
-
 
 
 

@@ -41,9 +41,11 @@ public class SheetsProvider {
     static final String TEMPERATURE_SPREADSHEET_ID = "1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0";
     static final String HUMIDITY_SPREADSHEET_ID = "1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4";
     static final String BATTERY_SPREADSHEET_ID = "1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk";
+    static final String PRECIPITATION_SPREADSHEET_ID = "1hXvcWWTWgMiXYH4mFiLUIuAvt-Y8llF7W8hnBkKd5jU";
     static final int TEMPERATURE_DATA_SHEET_ID = 1714261182;
     static final int HUMIDITY_DATA_SHEET_ID = 1714261182;
     static final int BATTERY_DATA_SHEET_ID = 1714261182;
+    static final int PRECIPITATION_DATA_SHEET_ID = 1714261182;
 
     static final String CONFIG_AND_LOGS_SPREADSHEET_ID = "170j9y4aZxPRHIUCS5WqqtaF60wLBi1iroIF7gXUUgW0";
     static final int LOGS_SHEET_ID = 767230915;

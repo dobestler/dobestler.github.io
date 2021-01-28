@@ -106,7 +106,7 @@ public class UploadService extends IntentService {
 
     private static Sample getSample(final String name, final Sample sample) {
         if (sample == null) {
-            return new Sample(new Date(), name, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_INT);
+            return new Sample(new Date(), name, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT);
         } else {
             return sample;
         }
@@ -176,9 +176,9 @@ public class UploadService extends IntentService {
             Date d = parseDate(context, currentObservation.getDateTime());
             float tempCurrent = Float.parseFloat(currentObservation.getTemperature());
             int relHumid = Math.round(Float.parseFloat(currentObservation.getHumidity()));
-            //int pressure = currentObservation.getQfePressure());
+            float precipitation = Float.parseFloat(currentObservation.getPrecipitation());
 
-            return new Sample(d, "Outside", tempCurrent, relHumid, Sample.NOT_SET_INT);
+            return new Sample(d, "Outside", tempCurrent, relHumid, precipitation, Sample.NOT_SET_INT);
         } catch (Exception e) {
             new ExceptionReporter().sendException(context, e, TAG, "Failed to fetch Outside Conditions.");
             return getSample("Outside", null);

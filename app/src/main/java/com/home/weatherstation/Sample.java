@@ -17,12 +17,14 @@ public class Sample implements Parcelable {
     private float temperature;
     private int relativeHumidity;
     private int batteryLevel;
+    private float precipitation;
 
-    public Sample(final Date timestamp, String deviceName, final float temperature, final int relativeHumidity, final int batteryLevel) {
+    public Sample(final Date timestamp, String deviceName, final float temperature, final int relativeHumidity, final float precipitation, final int batteryLevel) {
         this.timestamp = timestamp;
         this.deviceName = deviceName;
         this.temperature = temperature;
         this.relativeHumidity = relativeHumidity;
+        this.precipitation = precipitation;
         this.batteryLevel = batteryLevel;
     }
 
@@ -68,6 +70,14 @@ public class Sample implements Parcelable {
         return relativeHumidity != NOT_SET_INT;
     }
 
+    public float getPrecipitation() {
+        return precipitation;
+    }
+
+    public boolean hasPrecipitation() {
+        return precipitation != NOT_SET_FLOAT;
+    }
+
     public int getBatteryLevel() {
         return batteryLevel;
     }
@@ -83,6 +93,7 @@ public class Sample implements Parcelable {
                 ", deviceName='" + deviceName + '\'' +
                 ", temperature=" + temperature +
                 ", relativeHumidity=" + relativeHumidity +
+                ", precipitation=" + precipitation +
                 ", batteryLevel=" + batteryLevel +
                 '}';
     }
@@ -98,6 +109,7 @@ public class Sample implements Parcelable {
         dest.writeString(deviceName);
         dest.writeFloat(temperature);
         dest.writeInt(relativeHumidity);
+        dest.writeFloat(precipitation);
         dest.writeInt(batteryLevel);
     }
 
@@ -109,6 +121,7 @@ public class Sample implements Parcelable {
         deviceName = in.readString();
         temperature = in.readFloat();
         relativeHumidity = in.readInt();
+        precipitation = in.readFloat();
         batteryLevel = in.readInt();
     }
 

@@ -4,7 +4,6 @@ import android.content.Context;
 
 import com.home.weatherstation.Sample;
 import com.home.weatherstation.util.MyLog;
-import com.hypertrack.hyperlog.HyperLog;
 
 import java.io.IOException;
 import java.util.Date;
@@ -41,6 +40,16 @@ public class SamplesRecorder {
                 deviceNo9.hasRelativeHumidity(), String.valueOf(deviceNo9.getRelativeHumidity()),
                 deviceNo10.hasRelativeHumidity(), String.valueOf(deviceNo10.getRelativeHumidity()),
                 outside.hasRelativeHumidity(), String.valueOf(outside.getRelativeHumidity()));
+
+        MyLog.i(TAG, "Recording PRECIPITATION samples ...");
+        sheetsProvider.insertSamplesWithRetry(
+                SheetsProvider.PRECIPITATION_SPREADSHEET_ID,
+                SheetsProvider.PRECIPITATION_DATA_SHEET_ID,
+                timestampValue.toString(),
+                false, "",
+                false, "",
+                false, "",
+                outside.hasPrecipitation(), String.valueOf(outside.getPrecipitation()));
 
         MyLog.i(TAG, "Recording BATTERY samples ...");
         sheetsProvider.insertSamplesWithRetry(
