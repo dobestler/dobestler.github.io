@@ -61,43 +61,78 @@
         google.charts.load('current', {'packages':['corechart', 'line']});
 
         function drawChart(dataType, start, end) {
-            var spreadSheetId = "";
-            var sheetId = "";
-            switch (dataType) {
-                case 'Humidity':
-                    spreadSheetId = spreadsheetIdHumidity;
-                    sheetId = sheetIdHumidityData;
-                    break;
-                case 'Precipitation':
-                    spreadSheetId = spreadsheetIdPrecipitation;
-                    sheetId = sheetIdPrecipitationData;
-                    break;
-                case 'Temperature':
-                    spreadSheetId = spreadsheetIdTemperature;
-                    sheetId = sheetIdTemperatureData;
-                    break;
-                case 'Battery':
-                    spreadSheetId = spreadsheetIdBattery;
-                    sheetId = sheetIdBatteryData;
-                    break;
-            }
 
-            var query =
+           var query =
                 "SELECT A, B, C, D, E" +
                 " WHERE A >= datetime '" + start + "' AND A <= datetime '" + end + "'" +
                 " ORDER BY A DESC";
 
-            var url = "https://docs.google.com/spreadsheets/d/" + spreadSheetId + "/gviz/tq?gid=" + sheetId + "&headers=1&key=" + API_KEY + "&tq=";
-            console.log(url + encodeURIComponent(query));
+            var url = "https://docs.google.com/spreadsheets/d/{0}/gviz/tq?gid={1}&headers=1&key=" + API_KEY + "&tq={2}"
 
-            var q = new google.visualization.Query(url + encodeURIComponent(query));
-            q.send(handleChartQueryResponse);
+            var urlDataType = url.replace("{0}", getSpreadsheetId(dataType))
+                .replace("{1}", getSheetId(dataType))
+                .replace("{2}", encodeURIComponent(query))
+            var urlPrecip   = url.replace("{0}", getSpreadsheetId('Precipitation'))
+                .replace("{1}", getSheetId('Precipitation'))
+                .replace("{2}", encodeURIComponent(query))
+
+            var q1 = new google.visualization.Query(urlDataType);
+            var q2 = new google.visualization.Query(urlPrecip);
+
+            var queriesReady = [false, false]; // array should have a number of elements equal to the number of queries
+            var dataTables = [];
+
+            // readyCheck function takes the response returned by the query and the index in the "queriesReady" array to set to true
+            // each query should use a unique index
+            function readyCheck (response, index) {
+                if (response.isError()) {
+                    alert('Error in query: ' + response.getMessage() + ' ' + response.getDetailedMessage());
+                    return;
+                }
+                dataTables[index] = response.getDataTable();
+                queriesReady[index] = true;
+
+                var allDone = true;
+                for (var i = 0; i < queriesReady.length; i++) {
+                    allDone = allDone & queriesReady[i];
+                }
+
+                if (allDone) {
+                    //console.log("All Queries returned. Merge DataTables and draw chart");
+                    var mergedDataTable = mergePrecipitation(dataTables[0], dataTables[1]);
+                    drawChartWithData(mergedDataTable);
+                }
+            }
+
+            q1.send(function (response) {
+                readyCheck(response, 0);
+            });
+            q2.send(function (response) {
+                readyCheck(response, 1);
+            });
         }
 
-        function handleChartQueryResponse(response) {
-            var data = response.getDataTable();
-            //console.log(data.toJSON());
+        function mergePrecipitation(dataTable, dataTablePrecipitation) {
+            dataTable.addColumn({id: "Precipitation", label: "Precipitation", type: dataTablePrecipitation.getColumnType(4), pattern: 'General'});
 
+            if (dataTable.getNumberOfRows() != dataTablePrecipitation.getNumberOfRows())
+                console.log("Not same number of rows. DataTable1 = " + dataTable.getNumberOfRows() + " - PrecipitationDataTable = " + dataTablePrecipitation.getNumberOfRows());
+
+            for (i = 0; i < dataTable.getNumberOfRows() && i < dataTablePrecipitation.getNumberOfRows(); i++) {
+                var precipitationData = dataTablePrecipitation.getValue(i,4);
+                var date = dataTable.getValue(i,0);
+                var datePrecipitation = dataTablePrecipitation.getValue(i,0);
+                if (date.getMilliseconds() == datePrecipitation.getMilliseconds()) {
+                    dataTable.setCell(i, 5, precipitationData, String(precipitationData));
+                } else {
+                    console.log("Not same date on index " + i + ". Skipping Precipitation value.");
+                }
+            }
+
+            return dataTable;
+         }
+
+        function drawChartWithData(data) {
             var max_rows = 24 * 3 * 7 // equals 7 days on highest resolution (= 1 sample every 20mins)
 
             //console.log("Max Samples: " + max_rows + ", Samples in response: " + data.getNumberOfRows());
@@ -108,21 +143,81 @@
                 dataForChart = downsample(data, max_rows);
             }
 
-            // NEW Material Line Charts looks nicer but does not have gridlines (also does not need to load package 'corechart' above)
-            // https://developers.google.com/chart/interactive/docs/gallery/linechart#creating-material-line-charts
-            //var chart = new google.charts.Line(document.getElementById('visualization_chart_div'));
-            //var options = {
-            //    chart: {
-            //      title: document.getElementById('datatype').value + ' data',
-            //      subtitle: 'in ' + getUnitFor(document.getElementById('datatype').value),
-            //      interpolateNulls: true,
-            //      legend: { position: 'bottom' },
-            //    },
-            //    width: document.getElementById('visualization_chart_div').style.width,
-            //    height: $(document).height()/2,
-            //};
+            drawComboChart(dataForChart);
+        }
 
-            //
+        function drawComboChart(data) {
+            var chart = new google.visualization.ComboChart(document.getElementById('visualization_chart_div'));
+            datatype = document.getElementById('datatype').value;
+            unit = getUnitFor(datatype);
+            var options = {
+                title: datatype + ' data (' + unit + ')' ,
+                legend: {
+                    position: 'bottom'
+                },
+                chartArea: {
+                    width: '85%',
+                    height: '75%'
+                },
+                //vAxis: {
+                //    gridlines: {
+                //        interval: [1,2,4]
+                //    }
+                //},
+                vAxes: [{
+                        minValue: 0
+                    }, {
+                        minValue: 0,
+                        maxValue: 2
+                    }
+                ],
+                hAxis: {
+                    //format: 'E,dd.MM. HH:mm',
+                    gridlines: {
+                        units: {
+                            years: {format: ['YYYY']},
+                            months: {format: ['MMM']},
+                            days: {format: ['E']},
+                            hours: {format: ['HH:mm']}
+                        }
+                    }
+                },
+                width: document.getElementById('visualization_chart_div').style.width ,
+                height: $(document).height()/2,
+                interpolateNulls: true,
+                series: {
+                    0: {
+                        type: "line",
+                        targetAxisIndex: 0,
+                        color: "DarkSeaGreen"
+                    },
+                    1: {
+                        type: "line",
+                        targetAxisIndex: 0,
+                        color: "IndianRed"
+                    },
+                    2: {
+                        type: "line",
+                        targetAxisIndex: 0,
+                        color: "Gold"
+                    },
+                    3: {
+                        type: "line",
+                        targetAxisIndex: 0,
+                        color: "CornflowerBlue"
+                    },
+                    4: {
+                        type: "bars",
+                        targetAxisIndex: 1,
+                        color: "CornflowerBlue"
+                    }
+                }
+            };
+
+            chart.draw(data, options);
+        }
+
+        function drawLineChart(data) {
             var chart = new google.visualization.LineChart(document.getElementById('visualization_chart_div'));
             datatype = document.getElementById('datatype').value;
             unit = getUnitFor(datatype);
@@ -156,8 +251,7 @@
                 interpolateNulls: true,
             };
 
-            //chart.draw(dataForChart, google.charts.Line.convertOptions(options));
-            chart.draw(dataForChart, options);
+            chart.draw(data, options);
         }
 
         function downsample(data, max_rows) {
@@ -174,6 +268,7 @@
             dataSampled.addColumn({id: data.getColumnId(2), label: data.getColumnLabel(2), type: data.getColumnType(2), pattern: 'General'});
             dataSampled.addColumn({id: data.getColumnId(3), label: data.getColumnLabel(3), type: data.getColumnType(3), pattern: 'General'});
             dataSampled.addColumn({id: data.getColumnId(4), label: data.getColumnLabel(4), type: data.getColumnType(4), pattern: 'General'});
+            dataSampled.addColumn({id: data.getColumnId(5), label: data.getColumnLabel(5), type: data.getColumnType(5), pattern: 'General'});
 
             dataSampled.addRows(buckets);
 
@@ -187,11 +282,13 @@
             var sampledD9Sum;
             var sampledD10Sum;
             var sampledOutsideSum;
+            var sampledPrecipitationSum;
 
             var countD8;
             var countD9;
             var countD10;
             var countOutside;
+            var countPrecipitation;
 
             for (i = 0; i < buckets; i++) {
 
@@ -208,12 +305,14 @@
                 sampledD9Sum = 0;
                 sampledD10Sum = 0;
                 sampledOutsideSum = 0;
+                sampledPrecipitationSum = 0;
 
                 countDate = 0;
                 countD8 = 0;
                 countD9 = 0;
                 countD10 = 0;
                 countOutside = 0;
+                countPrecipitation = 0;
 
                 for (j = i * samplesPerRow; j < lastIndexOfBatch; j++) {
                     sampledDateMilliesSum += data.getValue(j,0).getTime();
@@ -235,6 +334,10 @@
                         sampledOutsideSum += data.getValue(j,4);
                         countOutside++;
                     }
+                    if (data.getValue(j,5) !== null) {
+                        sampledPrecipitationSum += data.getValue(j,5);
+                        countPrecipitation++;
+                    }
 
                     //console.log("Downsampling |   Sample " + (j+1) + " of " + (lastIndexOfBatch) + "\n" +
                     //            "                   Date     " + data.getValue(j,0) + "\n" +
@@ -246,12 +349,14 @@
                 var sampledD9 = (countD9 > 0 ? (sampledD9Sum/countD9).toFixed(1) : null);
                 var sampledD10 = (countD10 > 0 ? (sampledD10Sum/countD10).toFixed(1) : null);
                 var sampledOutside = (countOutside > 0 ? (sampledOutsideSum/countOutside).toFixed(1) : null);
+                var sampledPrecipitation = (countPrecipitation > 0 ? (sampledPrecipitationSum/countPrecipitation).toFixed(1) : null);
 
                 dataSampled.setCell(i, 0, sampledDate, moment(sampledDate).format("YYYY-MM-DD HH:mm:ss"));
                 dataSampled.setCell(i, 1, sampledD8, String(sampledD8));
                 dataSampled.setCell(i, 2, sampledD9, String(sampledD9));
                 dataSampled.setCell(i, 3, sampledD10, String(sampledD10));
                 dataSampled.setCell(i, 4, sampledOutside, String(sampledOutside));
+                dataSampled.setCell(i, 5, sampledPrecipitation, String(sampledPrecipitation));
 
                 //console.log("Downsampling |   ===> Date     " + sampledDate + "\n" +
                 //            "                      Device10 " + sampledD10);
@@ -262,6 +367,32 @@
             //console.log("Downsampling\n" + dataSampled.toJSON());
 
             return dataSampled;
+        }
+
+        function getSpreadsheetId(dataType) {
+            switch (dataType) {
+                case 'Humidity':
+                    return spreadsheetIdHumidity;
+                case 'Temperature':
+                    return spreadsheetIdTemperature;
+                case 'Battery':
+                    return spreadsheetIdBattery;
+                case 'Precipitation':
+                    return spreadsheetIdPrecipitation;
+            }
+        }
+
+        function getSheetId(dataType) {
+            switch (dataType) {
+                case 'Humidity':
+                    return sheetIdHumidityData;
+                case 'Temperature':
+                    return sheetIdTemperatureData;
+                case 'Battery':
+                    return sheetIdBatteryData;
+                case 'Precipitation':
+                    return sheetIdPrecipitationData;
+            }
         }
 
         function getUnitFor(dataType) {
@@ -400,13 +531,6 @@
             });
         }
 
-
-
-
-
-
-
-
     </script>
 
 </head>
@@ -496,7 +620,6 @@
                             onchange="queryMostRecent(); updateDateRangePicker();">
                         <option value="Temperature" selected="selected">Temperature</option>
                         <option value="Humidity">Humidity</option>
-                        <option value="Precipitation">Precipitation</option>
                         <option value="Battery">Battery</option>
                     </select>
                 </div>
@@ -586,6 +709,75 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
