@@ -55,7 +55,7 @@
 
         function initWeatherstation() {
             queryMostRecent();
-            updateDateRangePicker();
+            //updateDateRangePicker();
         }
 
         google.charts.load('current', {'packages':['corechart', 'line']});
@@ -476,6 +476,8 @@
             $('#kidsroom_currentTemperature').html(data[0].values[0][3] + unit);
             $('#outside_currentTemperature').html(data[0].values[0][4] + unit);
             $('#inside_avgTemperature').html(data[1].values[0] + unit);
+
+            updateDateRangePicker(); // do this after the first request for temp returned because of timeout issues
         }
 
         function responseHandlerHumidity(data, dataType) {
@@ -512,7 +514,7 @@
                 success: function(data){
                     console.log('success: '+data);
                     queryMostRecent();
-                    updateDateRangePicker();
+                    //updateDateRangePicker();
                 }
             });
 
@@ -531,13 +533,6 @@
                 }
             });
         }
-
-
-
-
-
-
-
 
     </script>
 
@@ -717,86 +712,6 @@
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 </script>
