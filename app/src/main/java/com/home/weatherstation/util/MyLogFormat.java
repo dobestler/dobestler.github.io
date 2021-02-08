@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 
 public class MyLogFormat extends LogFormat {
 
-    private static DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-DD HH:mm:ss.SSS");
+    private static DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     public MyLogFormat(Context context) {
         super(context);

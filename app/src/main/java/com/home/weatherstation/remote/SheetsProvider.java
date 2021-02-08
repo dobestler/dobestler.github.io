@@ -3,6 +3,7 @@ package com.home.weatherstation.remote;
 import android.content.Context;
 
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
@@ -68,12 +69,20 @@ public class SheetsProvider {
 
             HttpTransport transport = new NetHttpTransport();
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-            Sheets sheetsApi = new Sheets.Builder(transport, jsonFactory, credential).setApplicationName(context.getString(R.string.app_name)).build();
+            Sheets sheetsApi = new Sheets.Builder(transport, jsonFactory, setHttpTimeout(credential)).setApplicationName(context.getString(R.string.app_name)).build();
             instance = new SheetsProvider(sheetsApi);
         } else {
             MyLog.v(TAG, "Return existing singleton instance ...");
         }
         return instance;
+    }
+
+    private static HttpRequestInitializer setHttpTimeout(final HttpRequestInitializer requestInitializer) {
+        return httpRequest -> {
+            requestInitializer.initialize(httpRequest);
+            httpRequest.setConnectTimeout(3 * 60000);  // 3 minutes connect timeout
+            httpRequest.setReadTimeout(3 * 60000);  // 3 minutes read timeout
+        };
     }
 
     public synchronized void insertSamplesWithRetry(String spreadsheetId, int sheetId, CharSequence timestamp,
