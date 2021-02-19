@@ -13,8 +13,8 @@
 
     <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <!-- Google Sheets integration -->
-    <script type="text/javascript" src="https://apis.google.com/js/api.js"></script>
+    <!-- Google BigQuery integration -->
+    <script type="text/javascript" src="https://apis.google.com/js/client.js"></script>
 
     <!-- Refresh button -->
     <link rel="stylesheet" type="text/css" href="./style/button.css">
@@ -61,23 +61,19 @@
         google.charts.load('current', {'packages':['corechart', 'line']});
 
         function drawChart(dataType, start, end) {
+            var requestDataType = gapi.client.bigquery.jobs.query({
+              "projectId": "weatherstation-1347",
+              "timeoutMs": "30000",
+              "query": "SELECT Date, Bedroom, Living_room, Kids_room, Outside FROM Data." + dataType + " WHERE Date >= TIMESTAMP('" + start + "', 'Europe/Zurich') AND Date <= TIMESTAMP('" + end + "', 'Europe/Zurich') ORDER BY Date DESC;",
+              "useLegacySql": false
+            });
 
-           var query =
-                "SELECT A, B, C, D, E" +
-                " WHERE A >= datetime '" + start + "' AND A <= datetime '" + end + "'" +
-                " ORDER BY A DESC";
-
-            var url = "https://docs.google.com/spreadsheets/d/{0}/gviz/tq?gid={1}&headers=1&key=" + API_KEY + "&tq={2}"
-
-            var urlDataType = url.replace("{0}", getSpreadsheetId(dataType))
-                .replace("{1}", getSheetId(dataType))
-                .replace("{2}", encodeURIComponent(query))
-            var urlPrecip   = url.replace("{0}", getSpreadsheetId('Precipitation'))
-                .replace("{1}", getSheetId('Precipitation'))
-                .replace("{2}", encodeURIComponent(query))
-
-            var q1 = new google.visualization.Query(urlDataType);
-            var q2 = new google.visualization.Query(urlPrecip);
+            var requestPrecip = gapi.client.bigquery.jobs.query({
+              "projectId": "weatherstation-1347",
+              "timeoutMs": "30000",
+              "query": "SELECT Date, Bedroom, Living_room, Kids_room, Outside FROM Data.Precipitation WHERE Date >= TIMESTAMP('" + start + "', 'Europe/Zurich') AND Date <= TIMESTAMP('" + end + "', 'Europe/Zurich') ORDER BY Date DESC;",
+              "useLegacySql": false
+            });
 
             var queriesReady = [false, false]; // array should have a number of elements equal to the number of queries
             var dataTables = [];
@@ -85,11 +81,9 @@
             // readyCheck function takes the response returned by the query and the index in the "queriesReady" array to set to true
             // each query should use a unique index
             function readyCheck (response, index) {
-                if (response.isError()) {
-                    alert('Error in query: ' + response.getMessage() + ' ' + response.getDetailedMessage());
-                    return;
-                }
-                dataTables[index] = response.getDataTable();
+                //console.log(response);
+
+                dataTables[index] = toDataTable(response);
                 queriesReady[index] = true;
 
                 var allDone = true;
@@ -104,12 +98,43 @@
                 }
             }
 
-            q1.send(function (response) {
+            requestDataType.execute(function(response) {
                 readyCheck(response, 0);
             });
-            q2.send(function (response) {
+            requestPrecip.execute(function(response) {
                 readyCheck(response, 1);
             });
+        }
+
+        function toDataTable(response) {
+            var dataTable = new google.visualization.DataTable();
+            dataTable.addColumn('datetime','Date');
+            dataTable.addColumn('number','Bedroom');
+            dataTable.addColumn('number','Living room');
+            dataTable.addColumn('number','Kids room');
+            dataTable.addColumn('number','Outside');
+
+            dataTable.addRows(parseInt(response.result.totalRows))
+
+            $.each(response.result.rows, function(i, item) {
+              var dateMillis = item.f[0].v * 1000; // UTC
+             var date = new Date(dateMillis - new Date(dateMillis).getTimezoneOffset() * 60 * 1000) //LOCAL Timezone
+              //FIXME handle NULL values
+              var bedroom = round(parseFloat(item.f[1].v), 1);
+              var livingRoom = round(parseFloat(item.f[2].v), 1);
+              var kidsRoom = round(parseFloat(item.f[3].v), 1);
+              var outside = round(parseFloat(item.f[4].v), 1);
+              dataTable.setValue(i, 0, date);
+              dataTable.setValue(i, 1, item.f[1].v);
+              dataTable.setValue(i, 2, item.f[2].v);
+              dataTable.setValue(i, 3, item.f[3].v);
+              dataTable.setValue(i, 4, item.f[4].v);
+            });
+
+            var formatter = new google.visualization.DateFormat({pattern: "EE HH:mm, dd-MM-yyyy"});
+            formatter.format(dataTable, 0);
+
+            return dataTable;
         }
 
         function mergePrecipitation(dataTable, dataTablePrecipitation) {
@@ -453,52 +478,47 @@
         }
 
         function queryMostRecentFor(spreadsheetId, dataType, responseHandler) {
-            gapi.client.sheets.spreadsheets.values.batchGet({
-                spreadsheetId: spreadsheetId,
-                ranges: ['Data!A2:E2', 'Average!F2:F2'],
-            }).then(
-                function(response) {
-                    if (response.result.valueRanges.length > 0) {
-                        responseHandler(response.result.valueRanges, dataType);
-                    } else {
-                        alert('No ' + dataType + ' data found');
-                    }
-                },
-                function(response) {
-                    alert('Error reading ' + dataType + ' data: ' + response.result.error.message);
-                }
-            );
+            var request = gapi.client.bigquery.jobs.query({
+              'projectId': 'weatherstation-1347',
+              'timeoutMs': '30000',
+              'query': 'SELECT Date, Bedroom, Living_room, Kids_room, Outside, 9.99 as Average FROM Data.' + dataType + ', (SELECT MAX(Date) as maxDate FROM Data.' + dataType + ') x where Date = maxDate',
+              'useLegacySql': false
+            });
+            request.execute(function(response) {
+                responseHandler(response.result.rows, dataType);
+            });
 
         }
 
         function responseHandlerTemperature(data, dataType) {
+            //console.log(data);
             unit = getUnitFor(dataType)
-            $('#current_date').html(moment(data[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
-            $('#bedroom_currentTemperature').html(data[0].values[0][1] + unit);
-            $('#livingroom_currentTemperature').html(data[0].values[0][2] + unit);
-            $('#kidsroom_currentTemperature').html(data[0].values[0][3] + unit);
-            $('#outside_currentTemperature').html(data[0].values[0][4] + unit);
-            $('#inside_avgTemperature').html(data[1].values[0] + unit);
+            $('#current_date').html(moment(data[0].f[0].v * 1000).fromNow());
+            $('#bedroom_currentTemperature').html(round(data[0].f[1].v, 1).toFixed(1) + unit);
+            $('#livingroom_currentTemperature').html(round(data[0].f[2].v, 1).toFixed(1) + unit);
+            $('#kidsroom_currentTemperature').html(round(data[0].f[3].v, 1).toFixed(1) + unit);
+            $('#outside_currentTemperature').html(round(data[0].f[4].v, 1).toFixed(1) + unit);
+            $('#inside_avgTemperature').html(round(data[0].f[5].v, 1).toFixed(1) + unit);
 
             updateDateRangePicker(); // do this after the first request for temp returned because of timeout issues
         }
 
         function responseHandlerHumidity(data, dataType) {
             unit = getUnitFor(dataType)
-            // $('#current_date').html(moment(data[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
-            $('#bedroom_currentHumidity').html(data[0].values[0][1] + unit);
-            $('#livingroom_currentHumidity').html(data[0].values[0][2] + unit);
-            $('#kidsroom_currentHumidity').html(data[0].values[0][3] + unit);
-            $('#outside_currentHumidity').html(data[0].values[0][4] + unit);
-            $('#inside_avgHumidity').html(data[1].values[0] + unit);
+
+            $('#bedroom_currentHumidity').html(round(data[0].f[1].v, 0) + unit);
+            $('#livingroom_currentHumidity').html(round(data[0].f[2].v, 0) + unit);
+            $('#kidsroom_currentHumidity').html(round(data[0].f[3].v, 0) + unit);
+            $('#outside_currentHumidity').html(round(data[0].f[4].v, 0) + unit);
+            $('#inside_avgHumidity').html(round(data[0].f[5].v, 1).toFixed(1) + unit);
         }
 
         function responseHandlerBattery(data, dataType) {
             unit = getUnitFor(dataType)
-            // $('#current_date').html(moment(data[0].values[0][0], "YYYY-MM-DD HH:mm:ss").fromNow());
-            $('#bedroom_currentBattery').html(data[0].values[0][1] + unit);
+
+            $('#bedroom_currentBattery').html(round(data[0].f[1].v, 0) + unit);
             $('#livingroom_currentBattery').html("n/a");
-            $('#kidsroom_currentBattery').html(data[0].values[0][3] + unit);
+            $('#kidsroom_currentBattery').html(round(data[0].f[3].v, 0) + unit);
             $('#outside_currentBattery').html("");
             $('#inside_avgBattery').html("--");
         }
@@ -515,7 +535,7 @@
                 dataType: 'json',
                 data: '{"to":"/topics/actions","data":{"action":"' + action + '"},"priority":"high"}',
                 success: function(data){
-                    console.log('success: '+data);
+                    //console.log('success: '+data);
                     queryMostRecent();
                     //updateDateRangePicker();
                 }
@@ -537,14 +557,15 @@
             });
         }
 
-
-
-
+        function round(value, precision) {
+            var multiplier = Math.pow(10, precision || 0);
+            return Math.round(value * multiplier) / multiplier;
+        }
 
     </script>
 
 </head>
-<body>
+<body style="background-color: rgba(0,103,145,1)">
 <div class="container-fluid" style="margin:10;padding:0">
     <div class="panel panel-success">
         <div class="panel-heading">
@@ -660,11 +681,11 @@
       var API_KEY = 'AIzaSyCPIjTbvNAJZvLZKjx-xhZBZ4j0uRiqkDM';
 
       // Array of API discovery doc URLs for APIs used by the quickstart
-      var DISCOVERY_DOCS = ["https://sheets.googleapis.com/$discovery/rest?version=v4"];
+      var DISCOVERY_DOCS = ['https://bigquery.googleapis.com/discovery/v1/apis/bigquery/v2/rest'];
 
       // Authorization scopes required by the API; multiple scopes can be
       // included, separated by spaces.
-      var SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
+      var SCOPES = "https://www.googleapis.com/auth/bigquery https://www.googleapis.com/auth/drive";
 
       /**
        *  On load, called to load the auth2 library and API client library.
@@ -687,7 +708,7 @@
 
             // Goal: Share sheets with specific accounts instead of everybody. Chart does not work since it does
             // not use authenticated gapi.client. Needs some more trying with access_token
-            var useOauth = false;
+            var useOauth = true;
 
             if (useOauth) {
                 // Listen for sign-in state changes.
@@ -700,7 +721,7 @@
                 // Handle the initial sign-in state.
                 updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
             } else {
-                initWeatherstation();
+                loadBigQuery();
             }
 
         }, function(error) {
@@ -714,16 +735,22 @@
        */
       function updateSigninStatus(isSignedIn) {
         if (isSignedIn) {
-            initWeatherstation();
+            loadBigQuery();
         } else {
             alert('Please sign in. Please make sure not to block the sign-in pop-up.');
         }
       }
 
-
-
-
-
+      function loadBigQuery() {
+        gapi.client.load('bigquery', 'v2');
+        setTimeout(function() {
+          if (!gapi.client.bigquery) {
+            loadBigQuery();
+          } else {
+            initWeatherstation();
+          }
+        }, 500);
+      }
 
 </script>
 </body>
