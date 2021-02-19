@@ -118,7 +118,7 @@
 
             $.each(response.result.rows, function(i, item) {
               var dateMillis = item.f[0].v * 1000; // UTC
-             var date = new Date(dateMillis - new Date(dateMillis).getTimezoneOffset() * 60 * 1000) //LOCAL Timezone
+             var date = new Date(dateMillis);
               //FIXME handle NULL values
               var bedroom = round(parseFloat(item.f[1].v), 1);
               var livingRoom = round(parseFloat(item.f[2].v), 1);
@@ -562,6 +562,8 @@
             return Math.round(value * multiplier) / multiplier;
         }
 
+
+
     </script>
 
 </head>
@@ -751,6 +753,8 @@
           }
         }, 500);
       }
+
+
 
 </script>
 </body>
