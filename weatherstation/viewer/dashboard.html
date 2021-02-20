@@ -37,15 +37,6 @@
     <link rel="stylesheet" type="text/css" href="./style/weatherstation.css"/>
 
     <script type="text/javascript">
-        var spreadsheetIdTemperature = '1TDc8o49IiG60Jfmoy-23UU7UfSlUZbYeX4QrnPCQ8d0';
-        var spreadsheetIdHumidity = '1LVvt-egQB7sXqdyBKtJzBMMZiiBKoAeQL15pMZos7l4';
-        var spreadsheetIdBattery = '1bqguOW2ovWqVFjXrxp-v2kvzSXy_8zG21yOEgmyyjWk';
-        var spreadsheetIdPrecipitation = '1hXvcWWTWgMiXYH4mFiLUIuAvt-Y8llF7W8hnBkKd5jU';
-        var sheetIdTemperatureData = '1714261182';
-        var sheetIdHumidityData = '1714261182';
-        var sheetIdBatteryData = '1714261182';
-        var sheetIdPrecipitationData = '1714261182';
-
         var start = moment().subtract(1, 'days');
         var end = moment();
 
@@ -472,12 +463,14 @@
         };
 
         function queryMostRecent() {
-            queryMostRecentFor(spreadsheetIdTemperature, 'Temperature', responseHandlerTemperature);
-            queryMostRecentFor(spreadsheetIdHumidity, 'Humidity', responseHandlerHumidity);
-            queryMostRecentFor(spreadsheetIdBattery, 'Battery', responseHandlerBattery);
+            queryMostRecentFor('Temperature', responseHandlerTemperature);
+            queryMostRecentFor('Humidity', responseHandlerHumidity);
+            queryMostRecentFor('Battery', responseHandlerBattery);
+            queryMostRecentMovingAvgFor('Temperature', responseHandlerMovingAvgTemperature);
+            queryMostRecentMovingAvgFor('Humidity', responseHandlerMovingAvgHumidity);
         }
 
-        function queryMostRecentFor(spreadsheetId, dataType, responseHandler) {
+        function queryMostRecentFor(dataType, responseHandler) {
             var request = gapi.client.bigquery.jobs.query({
               'projectId': 'weatherstation-1347',
               'timeoutMs': '30000',
@@ -485,42 +478,65 @@
               'useLegacySql': false
             });
             request.execute(function(response) {
-                responseHandler(response.result.rows, dataType);
+                responseHandler(response.result.rows, getUnitFor(dataType));
             });
-
         }
 
-        function responseHandlerTemperature(data, dataType) {
+        function queryMostRecentMovingAvgFor(dataType, responseHandler) {
+            var request = gapi.client.bigquery.jobs.query({
+              'projectId': 'weatherstation-1347',
+              'timeoutMs': '30000',
+              'query': 'WITH MOVING_AVG AS ' +
+                          '(SELECT date_day, AVG(avg_inside) OVER (ORDER BY day RANGE BETWEEN 2 PRECEDING AND CURRENT ROW) AS mov_avg_3d ' +
+                          'FROM (' +
+                            'SELECT DATE(Date) AS date_day, UNIX_DATE(DATE(date)) AS day, AVG((Bedroom + Living_room + Kids_room)/3) AS avg_inside ' +
+                            'FROM Data.' + dataType + ' ' +
+                            'WHERE Date > TIMESTAMP(DATE_SUB(CURRENT_DATE, INTERVAL 4 DAY)) ' +
+                            'GROUP BY date_day, day' +
+                          ')' +
+                        ') ' +
+                        'SELECT mov_avg_3d FROM MOVING_AVG,(SELECT MAX(date_day) as maxDate FROM MOVING_AVG) x ' +
+                        'WHERE date_day = x.maxDate',
+              'useLegacySql': false
+            });
+            request.execute(function(response) {
+                responseHandler(response.result.rows, getUnitFor(dataType));
+            });
+        }
+
+        function responseHandlerTemperature(data, unit) {
             //console.log(data);
-            unit = getUnitFor(dataType)
             $('#current_date').html(moment(data[0].f[0].v * 1000).fromNow());
             $('#bedroom_currentTemperature').html(round(data[0].f[1].v, 1).toFixed(1) + unit);
             $('#livingroom_currentTemperature').html(round(data[0].f[2].v, 1).toFixed(1) + unit);
             $('#kidsroom_currentTemperature').html(round(data[0].f[3].v, 1).toFixed(1) + unit);
             $('#outside_currentTemperature').html(round(data[0].f[4].v, 1).toFixed(1) + unit);
-            $('#inside_avgTemperature').html(round(data[0].f[5].v, 1).toFixed(1) + unit);
 
             updateDateRangePicker(); // do this after the first request for temp returned because of timeout issues
         }
 
-        function responseHandlerHumidity(data, dataType) {
-            unit = getUnitFor(dataType)
-
+        function responseHandlerHumidity(data, unit) {
             $('#bedroom_currentHumidity').html(round(data[0].f[1].v, 0) + unit);
             $('#livingroom_currentHumidity').html(round(data[0].f[2].v, 0) + unit);
             $('#kidsroom_currentHumidity').html(round(data[0].f[3].v, 0) + unit);
             $('#outside_currentHumidity').html(round(data[0].f[4].v, 0) + unit);
-            $('#inside_avgHumidity').html(round(data[0].f[5].v, 1).toFixed(1) + unit);
         }
 
-        function responseHandlerBattery(data, dataType) {
-            unit = getUnitFor(dataType)
-
+        function responseHandlerBattery(data, unit) {
             $('#bedroom_currentBattery').html(round(data[0].f[1].v, 0) + unit);
             $('#livingroom_currentBattery').html("n/a");
             $('#kidsroom_currentBattery').html(round(data[0].f[3].v, 0) + unit);
             $('#outside_currentBattery').html("");
             $('#inside_avgBattery').html("--");
+        }
+
+        function responseHandlerMovingAvgTemperature(data, unit) {
+            //console.log(data);
+            $('#inside_avgTemperature').html(round(data[0].f[0].v, 1).toFixed(1) + unit);
+        }
+        function responseHandlerMovingAvgHumidity(data, unit) {
+            //console.log(data);
+            $('#inside_avgHumidity').html(round(data[0].f[0].v, 1).toFixed(1) + unit);
         }
 
         function sendPushAndRefresh(action) {
@@ -564,6 +580,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
     </script>
 
 </head>
@@ -596,7 +622,7 @@
                 <div class="col-xs-2"><label>Bed room</label></div>
                 <div class="col-xs-2"><label>Living room</label></div>
                 <div class="col-xs-2"><label>Kids’ room</label></div>
-                <div class="col-xs-2 text-muted"><label>Inside average</label></div>
+                <div class="col-xs-2 text-muted"><label>3d avg</label></div>
                 <div class="col-xs-2"><label>Outside</label></div>
             </div>
             <div class="row">
@@ -753,6 +779,16 @@
           }
         }, 500);
       }
+
+
+
+
+
+
+
+
+
+
 
 
 
