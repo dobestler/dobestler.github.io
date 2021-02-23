@@ -132,7 +132,6 @@ public class UploadService extends IntentService {
 
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
                 checkThresholds((AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
-
             } else if (ACTION_PUBLISH_LOGS.equals(action)) {
                 uploadLogs();
 
@@ -172,7 +171,7 @@ public class UploadService extends IntentService {
             InputStream in = new BufferedInputStream(conn.getInputStream(), 1024);
             String response = IOUtils.toString(in, StandardCharsets.UTF_8);
 
-            SmnRecord currentObservation = new SmnData(response).getRecordFor("REH");
+            SmnRecord currentObservation = new SmnData(response).getRecordFor("SMA");
             Date d = parseDate(context, currentObservation.getDateTime());
             float tempCurrent = Float.parseFloat(currentObservation.getTemperature());
             int relHumid = Math.round(Float.parseFloat(currentObservation.getHumidity()));
