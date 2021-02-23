@@ -52,6 +52,7 @@
         google.charts.load('current', {'packages':['corechart', 'line']});
 
         function drawChart(dataType, start, end) {
+            //Careful: BQ returns max. 70'000
             var requestDataType = gapi.client.bigquery.jobs.query({
               "projectId": "weatherstation-1347",
               "timeoutMs": "30000",
@@ -109,8 +110,7 @@
 
             $.each(response.result.rows, function(i, item) {
               var dateMillis = item.f[0].v * 1000; // UTC
-             var date = new Date(dateMillis);
-              //FIXME handle NULL values
+              var date = new Date(dateMillis);
               var bedroom = round(parseFloat(item.f[1].v), 1);
               var livingRoom = round(parseFloat(item.f[2].v), 1);
               var kidsRoom = round(parseFloat(item.f[3].v), 1);
@@ -312,7 +312,7 @@
 
             for (i = 0; i < buckets; i++) {
 
-                //console.log("Downsampling | Bucket " + (i+1) + " of " + buckets);
+                console.log("Downsampling | Bucket " + (i+1) + " of " + buckets);
 
                 rowsToBatch = data.getNumberOfRows() - i*samplesPerRow
                 if (rowsToBatch < samplesPerRow)
@@ -540,7 +540,7 @@
         }
 
         function sendPushAndRefresh(action) {
-            console.log('Sending push: ' + action);
+            //console.log('Sending push: ' + action);
             $.ajax({
                 url: 'https://fcm.googleapis.com/fcm/send',
                 headers: {
@@ -552,12 +552,14 @@
                 data: '{"to":"/topics/actions","data":{"action":"' + action + '"},"priority":"high"}',
                 success: function(data){
                     //console.log('success: '+data);
-                    queryMostRecent();
-                    //updateDateRangePicker();
+                    setTimeout(function(){
+                        queryMostRecent();
+                        //updateDateRangePicker();
+                    }, 8000);  // The millis to wait before executing this block
                 }
             });
 
-            console.log('Sending push: publish_logs');
+            //console.log('Sending push: publish_logs');
             $.ajax({
                 url: 'https://fcm.googleapis.com/fcm/send',
                 headers: {
@@ -568,7 +570,7 @@
                 dataType: 'json',
                 data: '{"to":"/topics/actions","data":{"action":"publish_logs"},"priority":"high"}',
                 success: function(data){
-                    console.log('success: '+data);
+                    //console.log('success: '+data);
                 }
             });
         }
@@ -590,10 +592,18 @@
 
 
 
+
+
+
+
+
+
+
+
     </script>
 
 </head>
-<body style="background-color: rgba(0,103,145,1)">
+<body>
 <div class="container-fluid" style="margin:10;padding:0">
     <div class="panel panel-success">
         <div class="panel-heading">
@@ -779,6 +789,14 @@
           }
         }, 500);
       }
+
+
+
+
+
+
+
+
 
 
 

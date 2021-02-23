@@ -8,6 +8,11 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/io.netty.versions.properties'
+        exclude 'META-INF/INDEX.LIST'
+    }
 
     useLibrary 'org.apache.http.legacy'
 
@@ -62,6 +67,7 @@ dependencies {
     implementation 'com.google.firebase:firebase-core:18.0.0'
     implementation 'com.google.firebase:firebase-messaging:21.0.1'
     implementation 'com.google.firebase:firebase-crashlytics:17.3.0'
+
     implementation 'com.github.yesidlazaro:GmailBackground:1.2.0'
 
     implementation 'com.hypertrack:hyperlog:0.0.10'
@@ -69,8 +75,13 @@ dependencies {
     // SMN API Code
     implementation 'joda-time:joda-time:2.9.4'
 
-    //implementation 'org.json:json:20171018'
     testImplementation 'junit:junit:4.13'
+
+    // Google Bigquery API
+    implementation('com.google.cloud:gcloud-java-bigquery:0.2.8') {
+        exclude group: 'com.google.api-client', module: 'google-api-client-appengine'
+        exclude group: 'io.grpc'
+    }
 
     //Google Sheets API
     implementation 'com.google.android.gms:play-services-auth:19.0.0'
