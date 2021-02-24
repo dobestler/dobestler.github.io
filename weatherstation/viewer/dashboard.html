@@ -507,36 +507,36 @@
         function responseHandlerTemperature(data, unit) {
             //console.log(data);
             $('#current_date').html(moment(data[0].f[0].v * 1000).fromNow());
-            $('#bedroom_currentTemperature').html(round(data[0].f[1].v, 1).toFixed(1) + unit);
-            $('#livingroom_currentTemperature').html(round(data[0].f[2].v, 1).toFixed(1) + unit);
-            $('#kidsroom_currentTemperature').html(round(data[0].f[3].v, 1).toFixed(1) + unit);
-            $('#outside_currentTemperature').html(round(data[0].f[4].v, 1).toFixed(1) + unit);
+            $('#bedroom_currentTemperature').html(toDisplayValue(data[0].f[1].v, 1, unit)) ;
+            $('#livingroom_currentTemperature').html(toDisplayValue(data[0].f[2].v, 1, unit));
+            $('#kidsroom_currentTemperature').html(toDisplayValue(data[0].f[3].v, 1, unit));
+            $('#outside_currentTemperature').html(toDisplayValue(data[0].f[4].v, 1, unit));
 
             updateDateRangePicker(); // do this after the first request for temp returned because of timeout issues
         }
 
         function responseHandlerHumidity(data, unit) {
-            $('#bedroom_currentHumidity').html(round(data[0].f[1].v, 0) + unit);
-            $('#livingroom_currentHumidity').html(round(data[0].f[2].v, 0) + unit);
-            $('#kidsroom_currentHumidity').html(round(data[0].f[3].v, 0) + unit);
-            $('#outside_currentHumidity').html(round(data[0].f[4].v, 0) + unit);
+            $('#bedroom_currentHumidity').html(toDisplayValue(data[0].f[1].v, 0, unit));
+            $('#livingroom_currentHumidity').html(toDisplayValue(data[0].f[2].v, 0, unit));
+            $('#kidsroom_currentHumidity').html(toDisplayValue(data[0].f[3].v, 0, unit));
+            $('#outside_currentHumidity').html(toDisplayValue(data[0].f[4].v, 0, unit));
         }
 
         function responseHandlerBattery(data, unit) {
-            $('#bedroom_currentBattery').html(round(data[0].f[1].v, 0) + unit);
+            $('#bedroom_currentBattery').html(toDisplayValue(data[0].f[1].v, 0, unit));
             $('#livingroom_currentBattery').html("n/a");
-            $('#kidsroom_currentBattery').html(round(data[0].f[3].v, 0) + unit);
+            $('#kidsroom_currentBattery').html(toDisplayValue(data[0].f[3].v, 0, unit));
             $('#outside_currentBattery').html("");
             $('#inside_avgBattery').html("--");
         }
 
         function responseHandlerMovingAvgTemperature(data, unit) {
             //console.log(data);
-            $('#inside_avgTemperature').html(round(data[0].f[0].v, 1).toFixed(1) + unit);
+            $('#inside_avgTemperature').html(toDisplayValue(data[0].f[0].v, 1, unit));
         }
         function responseHandlerMovingAvgHumidity(data, unit) {
             //console.log(data);
-            $('#inside_avgHumidity').html(round(data[0].f[0].v, 1).toFixed(1) + unit);
+            $('#inside_avgHumidity').html(toDisplayValue(data[0].f[0].v, 1, unit));
         }
 
         function sendPushAndRefresh(action) {
@@ -575,29 +575,18 @@
             });
         }
 
-        function round(value, precision) {
-            var multiplier = Math.pow(10, precision || 0);
-            return Math.round(value * multiplier) / multiplier;
+        function toDisplayValue(value, precision, unit) {
+            if (value == null) {
+                return 'n/a';
+            }
+            return round(value, precision) + unit;
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        function round(value, precision) {
+            var multiplier = Math.pow(10, precision || 0);
+            var rounded = Math.round(value * multiplier) / multiplier;
+            return rounded.toFixed(precision);
+        }
 
 
     </script>
@@ -789,25 +778,6 @@
           }
         }, 500);
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 </script>
