@@ -4,6 +4,7 @@ import android.app.IntentService;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 import com.home.weatherstation.remote.LogsRecorder;
 import com.home.weatherstation.remote.SamplesRecorder;
@@ -203,7 +204,7 @@ public class UploadService extends IntentService {
                 return new Sample(d, "Outside", tempCurrent, relHumid, precipitation, Sample.NOT_SET_INT);
             }
         } catch (Exception e) {
-            new ExceptionReporter().sendException(context, e, TAG, "Could not get current outside conditions.");
+            Log.w(TAG, "Could not get current outside conditions.", e);
             return new Sample(new Date(), "Outside", Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT);
         }
     }
