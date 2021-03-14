@@ -36,6 +36,8 @@ public class UploadService extends IntentService {
 
     private static final String TAG = UploadService.class.getSimpleName();
 
+    private static final long ALERT_AFTER_INCOMPLETE_SAMPLES_IN_A_ROW = 3;
+
     private static final String ACTION_UPLOAD = "com.home.weatherstation.action.upload";
     private static final String ACTION_CHECK_THRESHOLDS = "com.home.weatherstation.action.checkthresholds";
     private static final String ACTION_PUBLISH_LOGS = "com.home.weatherstation.action.publishlogs";
@@ -128,7 +130,21 @@ public class UploadService extends IntentService {
                 final Sample sampleDevice9 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE9);
                 final Sample sampleDevice10 = intent.getParcelableExtra(EXTRA_SAMPLE_DEVICE10);
                 final Sample sampleOutside = fetchCurrentConditionsOutsideOpenDataDirectly(this);
-                upload(timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
+
+                if (hasAllSampleData(sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside)) {
+                    MyLog.d(TAG, "Got samples from all BT Devices and Outside");
+                    Storage.storeLastSuccessfulScanTime(getBaseContext(), timestamp.getTime());
+                    Storage.storeIncompleteScans(getBaseContext(), 0); // reset
+                    upload(timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
+                } else {
+                    handleIncompleteScan(sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
+
+                    if (hasAnySampleData(sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside)) {
+                        upload(timestamp, sampleDevice8, sampleDevice9, sampleDevice10, sampleOutside);
+                    } else {
+                        MyLog.w(TAG, "Did not receive any results!");
+                    }
+                }
 
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
                 checkThresholds((AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
@@ -171,17 +187,29 @@ public class UploadService extends IntentService {
             InputStream in = new BufferedInputStream(conn.getInputStream(), 1024);
             String response = IOUtils.toString(in, StandardCharsets.UTF_8);
 
-            SmnRecord currentObservation = new SmnData(response).getRecordFor("SMA");
+            String stationCode = "SMA";
+            SmnRecord currentObservation = new SmnData(response).getRecordFor(stationCode);
             Date d = parseDate(context, currentObservation.getDateTime());
-            float tempCurrent = Float.parseFloat(currentObservation.getTemperature());
-            int relHumid = Math.round(Float.parseFloat(currentObservation.getHumidity()));
-            float precipitation = Float.parseFloat(currentObservation.getPrecipitation());
+            final String temp = currentObservation.getTemperature();
+            final String humidity = currentObservation.getHumidity();
+            final String precip = currentObservation.getPrecipitation();
 
-            return new Sample(d, "Outside", tempCurrent, relHumid, precipitation, Sample.NOT_SET_INT);
+            if (nullOrEmpty(temp) && nullOrEmpty(humidity) && nullOrEmpty(precip)) {
+                throw new Exception("No Temp, no Humidity, no Precipitation available for station with Code = " + stationCode);
+            } else {
+                float tempCurrent = nullOrEmpty(temp) ? Sample.NOT_SET_FLOAT : Float.parseFloat(temp);
+                int relHumid = nullOrEmpty(humidity) ? Sample.NOT_SET_INT : Math.round(Float.parseFloat(humidity));
+                float precipitation = nullOrEmpty(precip) ? Sample.NOT_SET_FLOAT : Float.parseFloat(precip);
+                return new Sample(d, "Outside", tempCurrent, relHumid, precipitation, Sample.NOT_SET_INT);
+            }
         } catch (Exception e) {
-            new ExceptionReporter().sendException(context, e, TAG, "Failed to fetch Outside Conditions.");
-            return getSample("Outside", null);
+            new ExceptionReporter().sendException(context, e, TAG, "Could not get current outside conditions.");
+            return new Sample(new Date(), "Outside", Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT);
         }
+    }
+
+    private static boolean nullOrEmpty(String s) {
+        return s == null || s.trim().equals("");
     }
 
     private static Date parseDate(Context context, String dateString) {
@@ -222,6 +250,32 @@ public class UploadService extends IntentService {
             MyLog.w(TAG, "Not enough data to calculate 4d average -> 'n/a' instead of float");
         } catch (IOException e) {
             new ExceptionReporter().sendException(this, e);
+        }
+    }
+
+    private boolean hasAllSampleData(Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
+        return
+                deviceNo8 != null && deviceNo8.hasTempCurrent() && deviceNo8.hasRelativeHumidity() && deviceNo8.hasBatteryLevelCurrent() &&
+                        deviceNo9 != null && deviceNo9.hasTempCurrent() && deviceNo9.hasRelativeHumidity() /*&& deviceNo9.hasBatteryLevelCurrent()*/ &&
+                        deviceNo10 != null && deviceNo10.hasTempCurrent() && deviceNo10.hasRelativeHumidity() && deviceNo10.hasBatteryLevelCurrent() &&
+                        sampleOutside != null && sampleOutside.hasTempCurrent() && sampleOutside.hasRelativeHumidity() && sampleOutside.hasPrecipitation();
+    }
+
+    private boolean hasAnySampleData(Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
+        return
+                deviceNo8 != null && (deviceNo8.hasTempCurrent() || deviceNo8.hasRelativeHumidity() || deviceNo8.hasBatteryLevelCurrent()) ||
+                        deviceNo9 != null && (deviceNo9.hasTempCurrent() && deviceNo9.hasRelativeHumidity() /*&& deviceNo9.hasBatteryLevelCurrent()*/) ||
+                        deviceNo10 != null && (deviceNo10.hasTempCurrent() && deviceNo10.hasRelativeHumidity() && deviceNo10.hasBatteryLevelCurrent()) ||
+                        sampleOutside != null && (sampleOutside.hasTempCurrent() && sampleOutside.hasRelativeHumidity() && sampleOutside.hasPrecipitation());
+    }
+
+    private void handleIncompleteScan(Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
+        long incompleteScans = Storage.readIncompleteScans(getBaseContext());
+        incompleteScans++;
+        Storage.storeIncompleteScans(getBaseContext(), incompleteScans);
+        MyLog.w(TAG, "Incomplete results to upload = " + incompleteScans + " of max " + ALERT_AFTER_INCOMPLETE_SAMPLES_IN_A_ROW);
+        if (incompleteScans == ALERT_AFTER_INCOMPLETE_SAMPLES_IN_A_ROW) {
+            new ExceptionReporter().sendIncompleteScansAlert(this, incompleteScans, deviceNo8, deviceNo9, deviceNo10, sampleOutside);
         }
     }
 

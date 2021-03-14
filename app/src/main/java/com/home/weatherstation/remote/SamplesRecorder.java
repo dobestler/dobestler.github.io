@@ -20,7 +20,7 @@ public class SamplesRecorder {
         this.bigQueryProvider = BigQueryProvider.getInstance(context.getApplicationContext());
     }
 
-    public void record(Date timestamp, Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample outside) throws IOException {
+    public void     record(Date timestamp, Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample outside) throws IOException {
         CharSequence timestampValue = android.text.format.DateFormat.format("yyyy-MM-dd HH:mm:ss", timestamp);
 
         MyLog.i(TAG, "Recording TEMPERATURE samples ...");

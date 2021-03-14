@@ -41,10 +41,10 @@ public class ExceptionReporter {
                 .send();
     }
 
-    public void sendIncompleteScansAlert(final Context context, long numberOfIncompleteScans, Sample deviceNr8, Sample deviceNr9, Sample deviceNr10) {
+    public void sendIncompleteScansAlert(final Context context, long numberOfIncompleteScans, Sample deviceNr8, Sample deviceNr9, Sample deviceNr10, Sample outside) {
         MyLog.i(TAG, "Sending incomplete scan alert email...");
         String body1 = String.format(Locale.getDefault(), "%d incomplete scans in a row!", numberOfIncompleteScans);
-        String body2 = deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10;
+        String body2 = deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10 + "\n" + outside;
         BackgroundMail.newBuilder(context)
                 .withUsername(BuildConfig.ALERT_EMAIL_FROM)
                 .withPassword(BuildConfig.ALERT_EMAIL_PASSWORD)

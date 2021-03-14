@@ -62,9 +62,6 @@ public class ScannerService extends Service {
     private static final double DEVICE_NO9_RELHUM_CALIBRATION = 1.098d;
     private static final double DEVICE_N10_RELHUM_CALIBRATION = 1.015d;
 
-
-    private static final long MAX_INOMPLETE_SAMPLING_ATTEMPTS = 3;
-
     private BluetoothAdapter mBluetoothAdapter;
     private ScanSettings settings;
     private final List<ScanFilter> scanFilters = Collections.singletonList(new ScanFilter.Builder().build());
@@ -230,11 +227,6 @@ public class ScannerService extends Service {
         return deviceNr8 != null && deviceNr9 != null && deviceNr10 != null;
     }
 
-    private boolean hasAnySampleData() {
-        return deviceNr8 != null || deviceNr9 != null || deviceNr10 != null;
-    }
-
-
     private void stopScanAndProcessResults() {
         mBluetoothAdapter.getBluetoothLeScanner().flushPendingScanResults(mScanCallback);
         mBluetoothAdapter.getBluetoothLeScanner().stopScan(mScanCallback);
@@ -290,41 +282,11 @@ public class ScannerService extends Service {
         long now = System.currentTimeMillis();
         Storage.storeLastScanTime(getBaseContext(), now);
 
-        if (hasAllSampleData()) {
-            MyLog.d(TAG, "Got scan results from all devices.");
-            Storage.storeLastSuccessfulScanTime(getBaseContext(), now);
-            Storage.storeIncompleteScans(getBaseContext(), 0); // reset
-            upload();
-        } else {
-            handleIncompleteScan();
-
-            if (hasAnySampleData()) {
-                upload();
-            } else {
-                MyLog.w(TAG, "Did not receive results from any device!");
-            }
-        }
-
-        //restartBT();
-    }
-
-    private void upload() {
         Date timestamp = deviceNr8 != null ? deviceNr8.getTimestamp() : (deviceNr9 != null ? deviceNr9.getTimestamp() : deviceNr10.getTimestamp());
         MyLog.i(TAG, "Processing samples : " + deviceNr8 + "\n" + deviceNr9 + "\n" + deviceNr10);
         Intent intent = UploadService.buildStartUploadIntent(this, timestamp, deviceNr8, deviceNr9, deviceNr10);
         serviceHelper.startForegroundService(this, intent);
     }
-
-    private void handleIncompleteScan() {
-        long incompleteScans = Storage.readIncompleteScans(getBaseContext());
-        incompleteScans++;
-        Storage.storeIncompleteScans(getBaseContext(), incompleteScans);
-        MyLog.w(TAG, "Handling incomplete scan result. Incomplete Scans=" + incompleteScans + " of max " + MAX_INOMPLETE_SAMPLING_ATTEMPTS);
-        if (incompleteScans == MAX_INOMPLETE_SAMPLING_ATTEMPTS) {
-            new ExceptionReporter().sendIncompleteScansAlert(this, incompleteScans, deviceNr8, deviceNr9, deviceNr10);
-        }
-    }
-
 
     private void ensureBTAndStartScan() {
         if (mBluetoothAdapter.isEnabled()) {
