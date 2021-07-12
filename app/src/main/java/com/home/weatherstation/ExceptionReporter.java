@@ -66,6 +66,14 @@ public class ExceptionReporter {
         sendEmail(context, subject, body);
     }
 
+    public void sendBatteryLevelLowAlert(final Context context, float batteryLevel, boolean isPlugged) {
+        MyLog.i(TAG, "Sending battery level low alert email...");
+        String subject = String.format("%s Alert: Battery level", context.getString(R.string.app_name));
+        String body = String.format(Locale.getDefault(), "Current battery level = %s%\nPlugged = %s",
+                new DecimalFormat("#.##").format(batteryLevel), String.valueOf(isPlugged));
+        sendEmail(context, subject, body);
+    }
+
     public void sendThresholdExceededAlert(final Context context, double exceedingValue,
                                            int lastXdays, float lowerThreshold, float upperThreshold) {
         MyLog.i(TAG, "Sending Threshold Exceeded alert email...");

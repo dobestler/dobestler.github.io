@@ -4,6 +4,8 @@ import android.app.IntentService;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
 import android.util.Log;
 
 import com.home.weatherstation.remote.LogsRecorder;
@@ -25,6 +27,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.TimeZone;
 
 /**
@@ -148,7 +151,8 @@ public class UploadService extends IntentService {
                 }
 
             } else if (ACTION_CHECK_THRESHOLDS.equals(action)) {
-                checkThresholds((AlertingConfig) intent.getSerializableExtra(EXTRA_ALERTING_CONFIG));
+                checkThresholds((AlertingConfig) Objects.requireNonNull(intent.getSerializableExtra(EXTRA_ALERTING_CONFIG)));
+                checkPhoneBatteryLevel();
             } else if (ACTION_PUBLISH_LOGS.equals(action)) {
                 uploadLogs();
 
@@ -224,6 +228,19 @@ public class UploadService extends IntentService {
         }
     }
 
+    private void checkPhoneBatteryLevel() {
+        Intent batteryIntent = registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        assert batteryIntent != null;
+        int level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+        int plugged = batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        boolean isPlugged = plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB || plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS;
+        float batteryLevel = ((float) level / (float) scale) * 100.0f;
+        MyLog.d(TAG, "Current phone battery level: " + batteryLevel + "%, is plugged: " + isPlugged);
+        if (!isPlugged || batteryLevel < 90) {
+            new ExceptionReporter().sendBatteryLevelLowAlert(this, batteryLevel, isPlugged);
+        }
+    }
 
     private void checkThresholds(final AlertingConfig alertingConfig) {
         int lastXdays = -4; // should be fetched from Sheets (or maybe sheets should trigger this email altogether)
@@ -254,7 +271,8 @@ public class UploadService extends IntentService {
         }
     }
 
-    private boolean hasAllSampleData(Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
+    private boolean hasAllSampleData(Sample deviceNo8, Sample deviceNo9, Sample
+            deviceNo10, Sample sampleOutside) {
         return
                 deviceNo8 != null && deviceNo8.hasTempCurrent() && deviceNo8.hasRelativeHumidity() && deviceNo8.hasBatteryLevelCurrent() &&
                         deviceNo9 != null && deviceNo9.hasTempCurrent() && deviceNo9.hasRelativeHumidity() /*&& deviceNo9.hasBatteryLevelCurrent()*/ &&
@@ -262,7 +280,8 @@ public class UploadService extends IntentService {
                         sampleOutside != null && sampleOutside.hasTempCurrent() && sampleOutside.hasRelativeHumidity() && sampleOutside.hasPrecipitation();
     }
 
-    private boolean hasAnySampleData(Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
+    private boolean hasAnySampleData(Sample deviceNo8, Sample deviceNo9, Sample
+            deviceNo10, Sample sampleOutside) {
         return
                 deviceNo8 != null && (deviceNo8.hasTempCurrent() || deviceNo8.hasRelativeHumidity() || deviceNo8.hasBatteryLevelCurrent()) ||
                         deviceNo9 != null && (deviceNo9.hasTempCurrent() && deviceNo9.hasRelativeHumidity() /*&& deviceNo9.hasBatteryLevelCurrent()*/) ||
@@ -270,7 +289,8 @@ public class UploadService extends IntentService {
                         sampleOutside != null && (sampleOutside.hasTempCurrent() && sampleOutside.hasRelativeHumidity() && sampleOutside.hasPrecipitation());
     }
 
-    private void handleIncompleteScan(Sample deviceNo8, Sample deviceNo9, Sample deviceNo10, Sample sampleOutside) {
+    private void handleIncompleteScan(Sample deviceNo8, Sample deviceNo9, Sample
+            deviceNo10, Sample sampleOutside) {
         long incompleteScans = Storage.readIncompleteScans(getBaseContext());
         incompleteScans++;
         Storage.storeIncompleteScans(getBaseContext(), incompleteScans);
