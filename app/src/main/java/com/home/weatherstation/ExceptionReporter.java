@@ -69,8 +69,8 @@ public class ExceptionReporter {
     public void sendBatteryLevelLowAlert(final Context context, float batteryLevel, boolean isPlugged) {
         MyLog.i(TAG, "Sending battery level low alert email...");
         String subject = String.format("%s Alert: Battery level", context.getString(R.string.app_name));
-        String body = String.format(Locale.getDefault(), "Current battery level = %s%\nPlugged = %s",
-                new DecimalFormat("#.##").format(batteryLevel), String.valueOf(isPlugged));
+        String body = String.format(Locale.getDefault(), "Current battery level = %s\nPlugged = %s",
+                new DecimalFormat("#.##").format(batteryLevel), isPlugged);
         sendEmail(context, subject, body);
     }
 
