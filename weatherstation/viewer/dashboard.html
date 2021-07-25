@@ -67,8 +67,17 @@
               "useLegacySql": false
             });
 
+            var requestSunshine = gapi.client.bigquery.jobs.query({
+              "projectId": "weatherstation-1347",
+              "timeoutMs": "30000",
+              "query": "SELECT Date, Bedroom, Living_room, Kids_room, Outside FROM Data.Sunshine WHERE Date >= TIMESTAMP('" + start + "', 'Europe/Zurich') AND Date <= TIMESTAMP('" + end + "', 'Europe/Zurich') ORDER BY Date DESC;",
+              "useLegacySql": false
+            });
+
             var queriesReady = [false, false]; // array should have a number of elements equal to the number of queries
             var dataTables = [];
+
+            sunshineOrPrecip = document.getElementById('sunshine_precip').value;
 
             // readyCheck function takes the response returned by the query and the index in the "queriesReady" array to set to true
             // each query should use a unique index
@@ -85,7 +94,7 @@
 
                 if (allDone) {
                     //console.log("All Queries returned. Merge DataTables and draw chart");
-                    var mergedDataTable = mergePrecipitation(dataTables[0], dataTables[1]);
+                    var mergedDataTable = mergePrecipitationOrSunshine(dataTables[0], dataTables[1], sunshineOrPrecip);
                     drawChartWithData(mergedDataTable);
                 }
             }
@@ -93,9 +102,16 @@
             requestDataType.execute(function(response) {
                 readyCheck(response, 0);
             });
-            requestPrecip.execute(function(response) {
-                readyCheck(response, 1);
-            });
+
+            if (sunshineOrPrecip == 'Sunshine') {
+                requestSunshine.execute(function(response) {
+                    readyCheck(response, 1);
+                });
+            } else {
+                requestPrecip.execute(function(response) {
+                    readyCheck(response, 1);
+                });
+            }
         }
 
         function toDataTable(response) {
@@ -128,20 +144,20 @@
             return dataTable;
         }
 
-        function mergePrecipitation(dataTable, dataTablePrecipitation) {
-            dataTable.addColumn({id: "Precipitation", label: "Precipitation", type: dataTablePrecipitation.getColumnType(4), pattern: 'General'});
+        function mergePrecipitationOrSunshine(dataTable, dataTable2, name) {
+            dataTable.addColumn({id: name, label: name, type: dataTable2.getColumnType(4), pattern: 'General'});
 
-            if (dataTable.getNumberOfRows() != dataTablePrecipitation.getNumberOfRows())
-                console.log("Not same number of rows. DataTable1 = " + dataTable.getNumberOfRows() + " - PrecipitationDataTable = " + dataTablePrecipitation.getNumberOfRows());
+            if (dataTable.getNumberOfRows() != dataTable2.getNumberOfRows())
+                console.log("Not same number of rows. DataTable1 = " + dataTable.getNumberOfRows() + " - DataTable2 = " + dataTable2.getNumberOfRows());
 
-            for (i = 0; i < dataTable.getNumberOfRows() && i < dataTablePrecipitation.getNumberOfRows(); i++) {
-                var precipitationData = dataTablePrecipitation.getValue(i,4);
+            for (i = 0; i < dataTable.getNumberOfRows() && i < dataTable2.getNumberOfRows(); i++) {
+                var data2 = dataTable2.getValue(i,4);
                 var date = dataTable.getValue(i,0);
-                var datePrecipitation = dataTablePrecipitation.getValue(i,0);
-                if (date.getMilliseconds() == datePrecipitation.getMilliseconds()) {
-                    dataTable.setCell(i, 5, precipitationData, String(precipitationData));
+                var date2 = dataTable2.getValue(i,0);
+                if (date.getMilliseconds() == date2.getMilliseconds()) {
+                    dataTable.setCell(i, 5, data2, String(data2));
                 } else {
-                    console.log("Not same date on index " + i + ". Skipping Precipitation value.");
+                    console.log("Not same date on index " + i + ". Skipping DataTable2 value.");
                 }
             }
 
@@ -165,6 +181,8 @@
         function drawComboChart(data) {
             var chart = new google.visualization.ComboChart(document.getElementById('visualization_chart_div'));
             datatype = document.getElementById('datatype').value;
+            sunshineOrPrecip = document.getElementById('sunshine_precip').value;
+            barColor = getColorFor(sunshineOrPrecip);
             unit = getUnitFor(datatype);
             var options = {
                 title: datatype + ' data (' + unit + ')' ,
@@ -226,7 +244,7 @@
                     4: {
                         type: "bars",
                         targetAxisIndex: 1,
-                        color: "SteelBlue"
+                        color: barColor
                     }
                 }
                 //trendlines: {
@@ -389,32 +407,6 @@
             return dataSampled;
         }
 
-        function getSpreadsheetId(dataType) {
-            switch (dataType) {
-                case 'Humidity':
-                    return spreadsheetIdHumidity;
-                case 'Temperature':
-                    return spreadsheetIdTemperature;
-                case 'Battery':
-                    return spreadsheetIdBattery;
-                case 'Precipitation':
-                    return spreadsheetIdPrecipitation;
-            }
-        }
-
-        function getSheetId(dataType) {
-            switch (dataType) {
-                case 'Humidity':
-                    return sheetIdHumidityData;
-                case 'Temperature':
-                    return sheetIdTemperatureData;
-                case 'Battery':
-                    return sheetIdBatteryData;
-                case 'Precipitation':
-                    return sheetIdPrecipitationData;
-            }
-        }
-
         function getUnitFor(dataType) {
             switch (dataType) {
                 case 'Humidity':
@@ -425,9 +417,19 @@
                     return '%';
                 case 'Precipitation':
                     return 'mm';
+                case 'Sunshine':
+                    return 'min';
             }
         }
 
+        function getColorFor(sunshineOrPrecip) {
+            switch (sunshineOrPrecip) {
+                case 'Sunshine':
+                    return "Gold";
+                case 'Precipitation':
+                    return "SteelBlue";
+            }
+        }
 
         function updateDateRangePicker() {
 
@@ -591,6 +593,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
     </script>
 
 </head>
@@ -695,6 +706,17 @@
                 </div>
             </div>
             <br/>
+            <div class="row">
+                <div class="col-xs-12">
+                    <!--<select id="datatype" onchange="draw();">-->
+                    <select id="sunshine_precip" class="form-control"
+                            onchange="queryMostRecent(); updateDateRangePicker();">
+                        <option value="Precipitation" selected="selected">Precipitation</option>
+                        <option value="Sunshine">Sunshine</option>
+                    </select>
+                </div>
+            </div>
+            <br/>
         </div>
     </div>
     <div class="panel panel-success">
@@ -780,6 +802,19 @@
           }
         }, 500);
       }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
