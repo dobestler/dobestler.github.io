@@ -144,7 +144,7 @@ public class ScannerService extends Service {
             scheduleNext = intent.hasExtra("schedule_next");
         }
 
-        MyLog.d(TAG, "onStartCommand ACTION = " + intent.getAction());
+        MyLog.d(TAG, "onStartCommand ACTION = " + action);
 
         if (START_SCHEDULER.equals(action)) {
             scheduleNextScan();
@@ -328,12 +328,13 @@ public class ScannerService extends Service {
         bytes.getShort();                           // temp*10 (highest)
         byte humidity = bytes.get();                // humidity in %
         float precipitation = Sample.NOT_SET_FLOAT; // only used for Outside Sample (fetched from remote)
+        float sunshine = Sample.NOT_SET_FLOAT;      // only used for Outside Sample (fetched from remote)
         int battery = Sample.NOT_SET_INT;           // old device does not provide battery level
 
         return new Sample(date, record.getDeviceName(),
                 ((float) tempCurrent) / 10 + DEVICE_NO9_TEMP_SHIFT_DEGREES,
                 (int) Math.round(((int) humidity) * DEVICE_NO9_RELHUM_CALIBRATION),
-                precipitation, battery);
+                precipitation, sunshine, battery);
     }
 
     // New (smaller and colored) devices. See app/external/Temperature-Humidity-Data-Logger-Commands-API.pdf for the protocol
@@ -342,7 +343,7 @@ public class ScannerService extends Service {
                                   double relhumCalibrationMultiplier) {
         ScanRecordParser parser = new ScanRecordParser(record.getBytes());
         BMTempHumi bmTempHumi = new BMTempHumi(parser.getManufacturerData(), parser.getScanResponseData());
-        return new Sample(date, record.getDeviceName(), (float) bmTempHumi.getCurrentTemperature() + tempCalibrationShift, (int) Math.round(bmTempHumi.getCurrentHumidity() * relhumCalibrationMultiplier), Sample.NOT_SET_FLOAT, bmTempHumi.getBatteryLevel());
+        return new Sample(date, record.getDeviceName(), (float) bmTempHumi.getCurrentTemperature() + tempCalibrationShift, (int) Math.round(bmTempHumi.getCurrentHumidity() * relhumCalibrationMultiplier), Sample.NOT_SET_FLOAT, Sample.NOT_SET_FLOAT, bmTempHumi.getBatteryLevel());
     }
 
     public static long getNextScheduled(final Context context) {

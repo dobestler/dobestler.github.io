@@ -5,9 +5,6 @@ import android.os.Parcelable;
 
 import java.util.Date;
 
-/**
- * Created by thaarres on 12/06/16.
- */
 public class Sample implements Parcelable {
     static final float NOT_SET_FLOAT = -999f;
     static final int NOT_SET_INT = -999;
@@ -16,15 +13,17 @@ public class Sample implements Parcelable {
     private String deviceName;
     private float temperature;
     private int relativeHumidity;
-    private int batteryLevel;
+    private float sunshine;
     private float precipitation;
+    private int batteryLevel;
 
-    public Sample(final Date timestamp, String deviceName, final float temperature, final int relativeHumidity, final float precipitation, final int batteryLevel) {
+    public Sample(final Date timestamp, String deviceName, final float temperature, final int relativeHumidity, final float precipitation, final float sunshine, final int batteryLevel) {
         this.timestamp = timestamp;
         this.deviceName = deviceName;
         this.temperature = temperature;
         this.relativeHumidity = relativeHumidity;
         this.precipitation = precipitation;
+        this.sunshine = sunshine;
         this.batteryLevel = batteryLevel;
     }
 
@@ -78,6 +77,14 @@ public class Sample implements Parcelable {
         return precipitation != NOT_SET_FLOAT;
     }
 
+    public float getSunshine() {
+        return sunshine;
+    }
+
+    public boolean hasSunshine() {
+        return sunshine != NOT_SET_FLOAT;
+    }
+
     public int getBatteryLevel() {
         return batteryLevel;
     }
@@ -94,6 +101,7 @@ public class Sample implements Parcelable {
                 ", temperature=" + temperature +
                 ", relativeHumidity=" + relativeHumidity +
                 ", precipitation=" + precipitation +
+                ", sunshine=" + sunshine +
                 ", batteryLevel=" + batteryLevel +
                 '}';
     }
@@ -110,18 +118,18 @@ public class Sample implements Parcelable {
         dest.writeFloat(temperature);
         dest.writeInt(relativeHumidity);
         dest.writeFloat(precipitation);
+        dest.writeFloat(sunshine);
         dest.writeInt(batteryLevel);
     }
 
     private void readFromParcel(Parcel in) {
-        // We just need to read back each
-        // field in the order that it was
-        // written to the parcel
+        // We just need to read back each field in the order that it was written to the parcel
         timestamp = new Date(in.readLong());
         deviceName = in.readString();
         temperature = in.readFloat();
         relativeHumidity = in.readInt();
         precipitation = in.readFloat();
+        sunshine = in.readFloat();
         batteryLevel = in.readInt();
     }
 

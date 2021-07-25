@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.util.Log;
 
+import com.google.cloud.bigquery.BigQueryException;
 import com.home.weatherstation.remote.LogsRecorder;
 import com.home.weatherstation.remote.SamplesRecorder;
 import com.home.weatherstation.smn.SmnData;
@@ -112,7 +113,7 @@ public class UploadService extends IntentService {
 
     private static Sample getSample(final String name, final Sample sample) {
         if (sample == null) {
-            return new Sample(new Date(), name, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT);
+            return new Sample(new Date(), name, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT);
         } else {
             return sample;
         }
@@ -197,19 +198,21 @@ public class UploadService extends IntentService {
             Date d = parseDate(context, currentObservation.getDateTime());
             final String temp = currentObservation.getTemperature();
             final String humidity = currentObservation.getHumidity();
-            final String precip = currentObservation.getPrecipitation();
+            final String precipationS = currentObservation.getPrecipitation();
+            final String sunshineS = currentObservation.getSunshine();
 
-            if (nullOrEmpty(temp) && nullOrEmpty(humidity) && nullOrEmpty(precip)) {
+            if (nullOrEmpty(temp) && nullOrEmpty(humidity) && nullOrEmpty(precipationS) && nullOrEmpty(sunshineS)) {
                 throw new Exception("No Temp, no Humidity, no Precipitation available for station with Code = " + stationCode);
             } else {
                 float tempCurrent = nullOrEmpty(temp) ? Sample.NOT_SET_FLOAT : Float.parseFloat(temp);
                 int relHumid = nullOrEmpty(humidity) ? Sample.NOT_SET_INT : Math.round(Float.parseFloat(humidity));
-                float precipitation = nullOrEmpty(precip) ? Sample.NOT_SET_FLOAT : Float.parseFloat(precip);
-                return new Sample(d, "Outside", tempCurrent, relHumid, precipitation, Sample.NOT_SET_INT);
+                float precipitation = nullOrEmpty(precipationS) ? Sample.NOT_SET_FLOAT : Float.parseFloat(precipationS);
+                float sunshine = nullOrEmpty(sunshineS) ? Sample.NOT_SET_FLOAT : Float.parseFloat(sunshineS);
+                return new Sample(d, "Outside", tempCurrent, relHumid, precipitation, sunshine, Sample.NOT_SET_INT);
             }
         } catch (Exception e) {
             Log.w(TAG, "Could not get current outside conditions.", e);
-            return new Sample(new Date(), "Outside", Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT);
+            return new Sample(new Date(), "Outside", Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_FLOAT, Sample.NOT_SET_INT);
         }
     }
 
@@ -266,7 +269,7 @@ public class UploadService extends IntentService {
             }
         } catch (NumberFormatException e) {
             MyLog.w(TAG, "Not enough data to calculate 4d average -> 'n/a' instead of float");
-        } catch (IOException e) {
+        } catch (BigQueryException e) {
             new ExceptionReporter().sendException(this, e);
         }
     }

@@ -5,6 +5,7 @@ import android.content.res.AssetManager;
 
 import com.google.cloud.AuthCredentials;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.QueryRequest;
 import com.google.cloud.bigquery.QueryResponse;
@@ -17,7 +18,6 @@ import java.util.ArrayList;
 public class BigQueryProvider {
 
     private static final String TAG = BigQueryProvider.class.getSimpleName();
-    private static final String DATASET = "Data";
 
     private static BigQueryProvider instance = null;
 
@@ -25,8 +25,9 @@ public class BigQueryProvider {
     static final String TABLE_HUMIDITY = "Humidity";
     static final String TABLE_BATTERY = "Battery";
     static final String TABLE_PRECIPITATION = "Precipitation";
+    static final String TABLE_SUNSHINE = "Sunshine";
 
-    private BigQuery bigQueryApi;
+    private final BigQuery bigQueryApi;
 
     private BigQueryProvider(BigQuery bigQueryApi) {
         this.bigQueryApi = bigQueryApi;
@@ -74,8 +75,8 @@ public class BigQueryProvider {
                         device10HasValue, device10Value,
                         outsideHasValue, outsideValue);
                 return;
-            } catch (IOException e) {
-                MyLog.w(TAG, tries + "/" + maxTries + ": Failed to insert sample.", e);
+            } catch (BigQueryException e) {
+                MyLog.w(TAG, tries + "s/" + maxTries + ": Failed to insert sample.", e);
                 exceptionMessages.add(e.getMessage());
                 try {
                     Thread.sleep(500);
@@ -92,11 +93,11 @@ public class BigQueryProvider {
                                boolean device8HasValue, float device8Value,
                                boolean device9HasValue, float device9Value,
                                boolean device10HasValue, float device10Value,
-                               boolean outsideHasValue, float outsideValue) throws IOException {
+                               boolean outsideHasValue, float outsideValue) {
 
         String insertQuery = "INSERT INTO Data." + tableName +
                 " (Date, Bedroom, Living_room, Kids_room, Outside) VALUES (" +
-                "TIMESTAMP '" + String.valueOf(timestamp) + " Europe/Zurich', " +
+                "TIMESTAMP '" + timestamp + " Europe/Zurich', " +
                 (device8HasValue ? device8Value : "NULL") + ", " +
                 (device9HasValue ? device9Value : "NULL") + ", " +
                 (device10HasValue ? device10Value : "NULL") + ", " +
@@ -108,7 +109,7 @@ public class BigQueryProvider {
         MyLog.d(TAG, "Inserted new samples data. Response: " + response);
     }
 
-    public synchronized float queryAvg(String tableName) throws IOException {
+    public synchronized float queryAvg(String tableName) {
 
         String readAvgQuery = "WITH MOVING_AVG AS " +
                 "(SELECT " +
