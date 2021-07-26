@@ -685,13 +685,19 @@
         </div>
         <div class="panel-body">
             <div class="row">
-                <div class="col-xs-12">
-                    <!--<select id="datatype" onchange="draw();">-->
+                <div class="col-xs-6">
                     <select id="datatype" class="form-control"
                             onchange="queryMostRecent(); updateDateRangePicker();">
                         <option value="Temperature" selected="selected">Temperature</option>
                         <option value="Humidity">Humidity</option>
                         <option value="Battery">Battery</option>
+                    </select>
+                </div>
+                <div class="col-xs-6">
+                    <select id="sunshine_precip" class="form-control"
+                            onchange="queryMostRecent(); updateDateRangePicker();">
+                        <option value="Precipitation" selected="selected">Precipitation</option>
+                        <option value="Sunshine">Sunshine</option>
                     </select>
                 </div>
             </div>
@@ -703,17 +709,6 @@
                         <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>&nbsp;
                         <span></span> <b class="caret"></b>
                     </div>
-                </div>
-            </div>
-            <br/>
-            <div class="row">
-                <div class="col-xs-12">
-                    <!--<select id="datatype" onchange="draw();">-->
-                    <select id="sunshine_precip" class="form-control"
-                            onchange="queryMostRecent(); updateDateRangePicker();">
-                        <option value="Precipitation" selected="selected">Precipitation</option>
-                        <option value="Sunshine">Sunshine</option>
-                    </select>
                 </div>
             </div>
             <br/>
@@ -802,21 +797,6 @@
           }
         }, 500);
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 </script>
