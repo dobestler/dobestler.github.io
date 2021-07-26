@@ -474,7 +474,7 @@
             //console.log(data);
             $('#current_date').html(moment(data[0].f[0].v * 1000).fromNow() +
                 "<SPAN STYLE='font-size:75%'>" +
-                " (" + moment().format("DD.MM.YYYY HH:mm:ss")+")" +
+                " (" + moment(data[0].f[0].v * 1000).format("DD.MM.YYYY HH:mm:ss")+")" +
                 "</SPAN>");
             $('#bedroom_currentTemperature').html(toDisplayValue(data[0].f[1].v, 1, unit));
             $('#livingroom_currentTemperature').html(toDisplayValue(data[0].f[2].v, 1, unit));
@@ -556,6 +556,7 @@
             var rounded = Math.round(value * multiplier) / multiplier;
             return rounded.toFixed(precision);
         }
+
 
 
 
@@ -777,6 +778,7 @@
           }
         }, 500);
       }
+
 
 
 
