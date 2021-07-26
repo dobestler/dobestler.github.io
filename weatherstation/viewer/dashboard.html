@@ -94,7 +94,7 @@
 
                 if (allDone) {
                     //console.log("All Queries returned. Merge DataTables and draw chart");
-                    var mergedDataTable = mergePrecipitationOrSunshine(dataTables[0], dataTables[1], sunshineOrPrecip);
+                    var mergedDataTable = mergePrecipitationOrSunshine(dataTables[0], dataTables[1], sunshineOrPrecip, getUnitFor(sunshineOrPrecip));
                     drawChartWithData(mergedDataTable);
                 }
             }
@@ -144,8 +144,8 @@
             return dataTable;
         }
 
-        function mergePrecipitationOrSunshine(dataTable, dataTable2, name) {
-            dataTable.addColumn({id: name, label: name, type: dataTable2.getColumnType(4), pattern: 'General'});
+        function mergePrecipitationOrSunshine(dataTable, dataTable2, name, unit) {
+            dataTable.addColumn({id: name, label: name + " (" + unit + ")", type: dataTable2.getColumnType(4), pattern: 'General'});
 
             if (dataTable.getNumberOfRows() != dataTable2.getNumberOfRows())
                 console.log("Not same number of rows. DataTable1 = " + dataTable.getNumberOfRows() + " - DataTable2 = " + dataTable2.getNumberOfRows());
@@ -190,6 +190,7 @@
                     position: 'top',
                     maxLines: 3
                 },
+                bar: {groupWidth: '100%'},
                 chartArea: {
                     width: '85%',
                     height: '75%'
@@ -250,43 +251,6 @@
                 //trendlines: {
                 //    1: {tooltip: false} // Draw a trendline for data series 0.
                 //}
-            };
-
-            chart.draw(data, options);
-        }
-
-        function drawLineChart(data) {
-            var chart = new google.visualization.LineChart(document.getElementById('visualization_chart_div'));
-            datatype = document.getElementById('datatype').value;
-            unit = getUnitFor(datatype);
-            var options = {
-                title: datatype + ' data (' + unit + ')' ,
-                legend: {
-                    position: 'bottom'
-                },
-                chartArea: {
-                    width: '85%',
-                    height: '75%'
-                },
-                vAxis: {
-                    gridlines: {
-                        interval: [1,2,4]
-                    }
-                },
-                hAxis: {
-                    //format: 'E,dd.MM. HH:mm',
-                    gridlines: {
-                        units: {
-                            years: {format: ['YYYY']},
-                            months: {format: ['MMM']},
-                            days: {format: ['E']},
-                            hours: {format: ['HH:mm']}
-                        }
-                    }
-                },
-                width: document.getElementById('visualization_chart_div').style.width ,
-                height: $(document).height()/2,
-                interpolateNulls: true,
             };
 
             chart.draw(data, options);
@@ -508,8 +472,11 @@
 
         function responseHandlerTemperature(data, unit) {
             //console.log(data);
-            $('#current_date').html(moment(data[0].f[0].v * 1000).fromNow());
-            $('#bedroom_currentTemperature').html(toDisplayValue(data[0].f[1].v, 1, unit)) ;
+            $('#current_date').html(moment(data[0].f[0].v * 1000).fromNow() +
+                "<SPAN STYLE='font-size:75%'>" +
+                " (" + moment().format("DD.MM.YYYY HH:mm:ss")+")" +
+                "</SPAN>");
+            $('#bedroom_currentTemperature').html(toDisplayValue(data[0].f[1].v, 1, unit));
             $('#livingroom_currentTemperature').html(toDisplayValue(data[0].f[2].v, 1, unit));
             $('#kidsroom_currentTemperature').html(toDisplayValue(data[0].f[3].v, 1, unit));
             $('#outside_currentTemperature').html(toDisplayValue(data[0].f[4].v, 1, unit));
@@ -589,6 +556,19 @@
             var rounded = Math.round(value * multiplier) / multiplier;
             return rounded.toFixed(precision);
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -797,6 +777,31 @@
           }
         }, 500);
       }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 </script>
