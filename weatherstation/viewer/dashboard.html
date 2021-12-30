@@ -508,6 +508,28 @@
             $('#inside_avgHumidity').html(toDisplayValue(data[0].f[0].v, 1, unit));
         }
 
+        function sendPush() {
+            let socket = new WebSocket("wss://four-seasons.asuscomm.com:8887", );
+
+            socket.onopen = function (event) {
+                socket.send("scan_and_upload");
+            };
+
+            socket.onmessage = function (event) {
+                console.log(event.data);
+                //TODO check for proper server response and close.
+                socket.close();
+            };
+
+            socket.onclose = function(event) {
+                console.log('Closed :: ${event.code} :: ${event.reason}');
+            };
+
+            socket.onerror = function(error) {
+                console.log('Error :: ${error.message}')
+            };
+        }
+
         function sendPushAndRefresh(action) {
             //console.log('Sending push: ' + action);
             $.ajax({
@@ -557,40 +579,6 @@
             return rounded.toFixed(precision);
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     </script>
 
 </head>
@@ -604,7 +592,7 @@
                 </div>
                 <div class="col-xs-0 pull-right">
                     <button class="refresh-icon"
-                            onclick="sendPushAndRefresh('scan_and_upload');">
+                            onclick="sendPush();">
                         <svg viewBox="0 0 90 90">
                             <path class="circle-path"
                                   d="M 45 45 m 0 -30 a 30 30 0 1 1 0 60 a 30 30 0 1 1 0 -60"></path>
@@ -786,41 +774,6 @@
           }
         }, 500);
       }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 </script>
 </body>
