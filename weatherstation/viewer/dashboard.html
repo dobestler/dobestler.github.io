@@ -513,20 +513,19 @@
 
             socket.onopen = function (event) {
                 socket.send("scan_and_upload");
-            };
-
-            socket.onmessage = function (event) {
-                console.log(event.data);
-                //TODO check for proper server response and close.
                 socket.close();
             };
 
+            socket.onmessage = function (event) {
+                console.log('Received: ' + event.data);
+            };
+
             socket.onclose = function(event) {
-                console.log('Closed :: ${event.code} :: ${event.reason}');
+                console.log('Closed: ' + event.code + ':' + event.reason);
             };
 
             socket.onerror = function(error) {
-                console.log('Error :: ${error.message}')
+                console.log('Error:' + error.message)
             };
         }
 
