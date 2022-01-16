@@ -1,0 +1,16 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+/.idea/
+
+# Ignore Gradle build output directory
+build
+
+# Ignore local configuration settings and secrets
+/local.properties
+/app/src/main/resources/WeatherStation-0f7089f5fac7.json
+/app/src/main/resources/cert.pem
+/app/src/main/resources/key.pem
+
+# Ignore locally generated runtime files
+/Storage.properties
+/app.log

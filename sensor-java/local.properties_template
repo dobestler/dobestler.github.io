@@ -1,0 +1,15 @@
+#
+# Copy this content to local.properties and configure properly
+#
+
+alert.email.from=user@mail.com
+alert.email.password=verysecretpassword
+alert.email.to=other@mail.com
+
+remote.host.address=hostaddress
+remote.host.user=user
+remote.host.password=password
+
+websocket.server.ssl.cert.filename=cert.pem    # needs to be located in src/main/resources
+websocket.server.ssl.key.filename=key.pem      # needs to be located in src/main.resources
+websocket.server.ssl.jks.password=pwd
