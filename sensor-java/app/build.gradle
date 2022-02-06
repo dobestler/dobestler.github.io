@@ -43,6 +43,7 @@ buildConfig {
     buildConfigField "String", "WEBSOCKET_SERVER_SSL_CERT_FILENAME", p['websocket.server.ssl.cert.filename']
     buildConfigField "String", "WEBSOCKET_SERVER_SSL_KEY_FILENAME", p['websocket.server.ssl.key.filename']
     buildConfigField "String", "WEBSOCKET_SERVER_SSL_JKS_PASSWORD", p['websocket.server.ssl.jks.password']
+    buildConfigField "String", "GOOGLE_CLOUD_AUTH_JSON_FILENAME", p['google.cloud.auth.json.filename']
 }
 
 remotes {

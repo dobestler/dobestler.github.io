@@ -10,6 +10,11 @@ remote.host.address=hostaddress
 remote.host.user=user
 remote.host.password=password
 
-websocket.server.ssl.cert.filename=cert.pem    # needs to be located in src/main/resources
-websocket.server.ssl.key.filename=key.pem      # needs to be located in src/main.resources
+# Needs to be located in src/main/resources
+websocket.server.ssl.cert.filename=cert.pem
+# Needs to be located in src/main/resources
+websocket.server.ssl.key.filename=key.pem
 websocket.server.ssl.jks.password=pwd
+
+# Needs to be located in src/main/resources
+google.cloud.auth.json.filename=WeatherStation-0f7089f5fac7.json

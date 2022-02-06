@@ -6,6 +6,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.QueryRequest;
 import com.google.cloud.bigquery.QueryResponse;
+import com.home.weatherstation.BuildConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +39,7 @@ public class BigQueryProvider {
             logger.trace(TAG, "Creating new singleton instance ...");
 
             try {
-                InputStream inputStream = BigQueryProvider.class.getClassLoader().getResourceAsStream("WeatherStation-0f7089f5fac7.json");
+                InputStream inputStream = BigQueryProvider.class.getClassLoader().getResourceAsStream(BuildConfig.GOOGLE_CLOUD_AUTH_JSON_FILENAME);
                 AuthCredentials authCredentials = AuthCredentials.createForJson(inputStream);
                 BigQuery bigQueryApi =
                         BigQueryOptions.builder()
